@@ -29,10 +29,9 @@ if sys.version_info[0] > 2:
 
 verbose = False
 opts = {}
-# TODO Don't have a default target
 opts["Target"] = "product"
 scriptPath = os.path.realpath(__file__)
-opts["ActionPath"] = "/".join(re.split("/", scriptPath)[:-1]) + "/ALMA/"
+opts["ActionPath"] = "/".join(re.split("/", scriptPath)[:-1]) + "/actions/"
 scriptFolder = opts["ActionPath"]
 
 if os.path.exists(".pipeopts.txt"):
