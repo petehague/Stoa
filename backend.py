@@ -10,7 +10,6 @@ import sqlite3 as sql
 from astropy.time import Time
 from multiprocessing import Process
 import time
-import fitsproc
 from astropy.io import fits
 from astroquery.ned import Ned
 from astropy import coordinates
@@ -32,7 +31,7 @@ scriptPath = os.path.realpath(__file__)
 #webPath = "/".join(re.split("/", scriptPath)[:-1]) + "/"
 webPath = os.path.split(scriptPath)[0] + "/"
 
-obsfile = "/home/prh44/stoa/ALMA/observations.fits"
+obsfile = "" #TODO: Link this value to config file
 
 stopCommand = "<a href=\"javascript:getPath('r')\">Click here to stop batch</a>"
 
@@ -89,7 +88,7 @@ def projectInfo():
     :return: HTML output
     """
     # TODO Generalise this, move these links into some kind of task file
-    outstring = '<h2>ALMA Archive</h2>'
+    outstring = '<h2>PROJECT NAME</h2>'
     outstring += '<p><a href="javascript:getPath(\'V\')">\
                   Browse all folders</a></p>'
     outstring += '<p><a href="javascript:getPath(\'C\')">\
@@ -414,7 +413,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                                           1, userip))'''
 
         if message[0] == 'T':
-            self.write_message(fitsproc.resultsTable(message[1:], siteroot, targetFolder))
+            self.write_message("<p>Results Table</p>") #TODO More link to external file
 
         if message[0] == 'B':
             if len(re.findall("/", currentFolder)) > 0:
@@ -485,43 +484,9 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             fileReq = message[1:]
             if (len(re.findall(".fits", fileReq)) > 0):
                 self.write_message("+Loading image...")
-                currentFolder = '/'.join(re.split("/", fileReq)[:-1])+"/"
-                parentFolder = '/'.join(re.split("/", currentFolder)[:-2])
-                parentFolder = '/'.join(re.split("//", parentFolder))
-                rfilename = targetFolder+currentFolder+"detections.reg"
                 print(rfilename)
-                if os.path.exists(rfilename):
-                    regs, nregs = fitsproc.parseRegions(rfilename, user, fileReq, siteroot, userspace[user].folder, webPath)
-                else:
-                    rfilename, regs, nregs = "", "", 0
-                imageblock = ""
-                for i in range(-1, nregs):
-                    visword = "visible" if i == -1 else "hidden"
-                    image = fitsproc.htmlimage(targetFolder+fileReq, rfilename, i, -1)
-                    imageblock += "<div id='img_{}' \
-                    style='visibility:{}'>{}</div>\n".format(i+1,
-                                                             visword,
-                                                             image)
-                fitsimage = fits.open(targetFolder+fileReq)
-                position = coordinates.SkyCoord(ra=fitsimage[0].header['OBSRA'], dec=fitsimage[0].header['OBSDEC'],
-                                                unit=(units.deg, units.deg), frame='fk5')
-                searchradius = (abs(fitsimage[0].header['CDELT1'])*fitsimage[0].header['NAXIS1'])/2.0
-                regs += "<p>NED Objects within {:3.3f} arcseconds of observation direction</p>".format(searchradius*3600)
-                nedresults = Ned.query_region(position, radius = searchradius*units.deg, equinox = 'J2000.0')
-                regs += htmlify(nedresults, ["Object Name", "RA(deg)", "DEC(deg)", "Type", "Redshift"])
-                ymldata = "<p>"+fitsproc.mk_ned_url(fitsimage[0].header['OBSRA'],fitsimage[0].header['OBSDEC'])+"</p>"
-                fitsimage.close()
-                ymlname = targetFolder+"/".join(re.split("/",currentFolder)[:-2])+"/stoa.yml"
-                ymldata += "<a href=\"javascript:getPath('Y{}')\">Edit control file</a><br />".format(ymlname)
-                ymlfile = open(targetFolder+"/".join(re.split("/",currentFolder)[:-2])+"/stoa.yml","r")
-                if pipe.isFlagged(parentFolder) == 0:
-                    ymldata += "<a href=\"javascript:getPath('U{}')\">Unflag</a>".format(parentFolder)
-                else:
-                    ymldata += "<a href=\"javascript:getPath('F{}')\">Flag</a>".format(parentFolder)
-                ymldata = "<p>{}</p>".format(fileReq) + ymldata
-                self.write_message("+"+imageblock)
-                self.write_message("*"+regs)
-                self.write_message("#"+fitsproc.imagemeta(targetFolder+fileReq)+ymldata)
+                # TODO Generic imaging code here
+
 
         if message[0] == 'Y':
             editor = "<p><a href=\"javascript:getPath('{}')\">Reset</a><br />".format(message)
@@ -565,7 +530,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             else:
                 toggle = ""
             if os.path.exists(obsfile):
-                self.write_message(toggle+fitsproc.targetTable(obsfile, targetFolder, message[1]))
+                self.write_message("<p>Add table here</p>") #TODO: Refer to external file here
             else:
                 self.write_message("<p>No observation file found</p>")
 
