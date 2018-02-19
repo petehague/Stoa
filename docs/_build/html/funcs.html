@@ -1,0 +1,791 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Functions &#8212; STOA 0.1.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '0.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Design" href="design.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="functions">
+<h1>Functions<a class="headerlink" href="#functions" title="Permalink to this headline">¶</a></h1>
+<p>These functions are documented for completeness, most are not intended
+for the end user to call directly</p>
+<div class="section" id="module-pipe">
+<span id="pipe-module"></span><h2>Pipe module<a class="headerlink" href="#module-pipe" title="Permalink to this headline">¶</a></h2>
+<p>The Pipe module can be run as a standalone command line interface, but is
+mainly designed to be used as the back end of the web interface</p>
+<dl class="function">
+<dt id="pipe.commandgen">
+<code class="descclassname">pipe.</code><code class="descname">commandgen</code><span class="sig-paren">(</span><em>command</em>, <em>pathname</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pipe.html#commandgen"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pipe.commandgen" title="Permalink to this definition">¶</a></dt>
+<dd><p>Main command processing function. Parses file system to find targets
+and then invokes the specific action script. Runs as a generator.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>command</strong> – The action script or command to be executed</li>
+<li><strong>pathname</strong> – The root path to start the search from</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Yields text reports of success/failure</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pipe.doActlist">
+<code class="descclassname">pipe.</code><code class="descname">doActlist</code><span class="sig-paren">(</span><em>command</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pipe.html#doActlist"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pipe.doActlist" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of all the action scripts available</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>command</strong> – Not used</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">List of scripts</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pipe.doDefault">
+<code class="descclassname">pipe.</code><code class="descname">doDefault</code><span class="sig-paren">(</span><em>command</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pipe.html#doDefault"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pipe.doDefault" title="Permalink to this definition">¶</a></dt>
+<dd><p>The default prefix; simply returns a list of paths containing the target</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>command</strong> – Name of command script; not used here</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A list of paths</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pipe.doList">
+<code class="descclassname">pipe.</code><code class="descname">doList</code><span class="sig-paren">(</span><em>command</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pipe.html#doList"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pipe.doList" title="Permalink to this definition">¶</a></dt>
+<dd><p>Combines the results of doRun and doRetry into a single list</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>command</strong> – Name of command script; not used here</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A list of paths</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pipe.doOptlist">
+<code class="descclassname">pipe.</code><code class="descname">doOptlist</code><span class="sig-paren">(</span><em>command</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pipe.html#doOptlist"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pipe.doOptlist" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns all the program options</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>command</strong> – Not used</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">List of options</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pipe.doOptset">
+<code class="descclassname">pipe.</code><code class="descname">doOptset</code><span class="sig-paren">(</span><em>command</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pipe.html#doOptset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pipe.doOptset" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the value of a option</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>command</strong> – string formatted as “&lt;option&gt; &lt;new value&gt;”</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">string representation of the new option</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pipe.doQuery">
+<code class="descclassname">pipe.</code><code class="descname">doQuery</code><span class="sig-paren">(</span><em>command</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pipe.html#doQuery"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pipe.doQuery" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns a list of paths derived from an SQL query</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>command</strong> – What is put after “WHERE” in the query</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A list of paths</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pipe.doRetry">
+<code class="descclassname">pipe.</code><code class="descname">doRetry</code><span class="sig-paren">(</span><em>command</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pipe.html#doRetry"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pipe.doRetry" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the paths that resulted in failure in the most
+recent run</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>command</strong> – Name of command script; not used here</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A list of paths</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pipe.doRun">
+<code class="descclassname">pipe.</code><code class="descname">doRun</code><span class="sig-paren">(</span><em>command</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pipe.html#doRun"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pipe.doRun" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns the paths that have been flagged by the user</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>command</strong> – Name of command script; not used here</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A list of paths</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pipe.parseAction">
+<code class="descclassname">pipe.</code><code class="descname">parseAction</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pipe.html#parseAction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pipe.parseAction" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parses a script file to extract directives</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>filename</strong> – The name of the script file</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A list of directives</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pipe.procCommand">
+<code class="descclassname">pipe.</code><code class="descname">procCommand</code><span class="sig-paren">(</span><em>command</em>, <em>pathname</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pipe.html#procCommand"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pipe.procCommand" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialises the database and then invokes commandgen()</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>command</strong> – Passed to commandgen()</li>
+<li><strong>pathname</strong> – Passed to commandgen()</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">None</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pipe.runDisplay">
+<code class="descclassname">pipe.</code><code class="descname">runDisplay</code><span class="sig-paren">(</span><em>path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pipe.html#runDisplay"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pipe.runDisplay" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dumps contents to console. Needed as a placeholder function for commands
+that execute wholly in their prefix stage</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>path</strong> – Prints this to the console</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">None</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="pipe.setProctabPath">
+<code class="descclassname">pipe.</code><code class="descname">setProctabPath</code><span class="sig-paren">(</span><em>pathname</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pipe.html#setProctabPath"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pipe.setProctabPath" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the database path</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>pathname</strong> – The path to an sqlite database file</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">None</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="module-backend">
+<span id="web-backend"></span><h2>Web Backend<a class="headerlink" href="#module-backend" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="backend.SocketHandler">
+<em class="property">class </em><code class="descclassname">backend.</code><code class="descname">SocketHandler</code><span class="sig-paren">(</span><em>application</em>, <em>request</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/backend.html#SocketHandler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#backend.SocketHandler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Handler for WebSocket connections</p>
+<dl class="method">
+<dt id="backend.SocketHandler.check_origin">
+<code class="descname">check_origin</code><span class="sig-paren">(</span><em>origin</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/backend.html#SocketHandler.check_origin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#backend.SocketHandler.check_origin" title="Permalink to this definition">¶</a></dt>
+<dd><p>To be implemented for security checks</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>origin</strong> – Page originating WS request</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Always “True” at the moment</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="backend.SocketHandler.on_close">
+<code class="descname">on_close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/backend.html#SocketHandler.on_close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#backend.SocketHandler.on_close" title="Permalink to this definition">¶</a></dt>
+<dd><p>Closes WebSocket</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">None</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="backend.SocketHandler.on_message">
+<code class="descname">on_message</code><span class="sig-paren">(</span><em>message</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/backend.html#SocketHandler.on_message"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#backend.SocketHandler.on_message" title="Permalink to this definition">¶</a></dt>
+<dd><p>Responds to WS messages. Action is determined by first character
+of message</p>
+<ul class="simple">
+<li>L: Login</li>
+<li>H: Home</li>
+<li>B: Back</li>
+<li>V: View folder</li>
+<li>F: Flag target</li>
+<li>U: Unflag target</li>
+<li>A: Get action list</li>
+<li>R: Run the specified action</li>
+<li>D: Display a file</li>
+<li>C: Concatenate results</li>
+<li>Q: Query the process table</li>
+<li>X: Logout</li>
+</ul>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>message</strong> – WS message string</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">None</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="backend.SocketHandler.open">
+<code class="descname">open</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/backend.html#SocketHandler.open"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#backend.SocketHandler.open" title="Permalink to this definition">¶</a></dt>
+<dd><p>Opens WebSocket</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">None</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="backend.addEllipse">
+<code class="descclassname">backend.</code><code class="descname">addEllipse</code><span class="sig-paren">(</span><em>image</em>, <em>x</em>, <em>y</em>, <em>a</em>, <em>b</em>, <em>theta</em>, <em>chan</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/backend.html#addEllipse"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#backend.addEllipse" title="Permalink to this definition">¶</a></dt>
+<dd><p>Adds an ellipse to a bitmap image</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>image</strong> – numpy ndarray representing image</li>
+<li><strong>x</strong> – x position of centre</li>
+<li><strong>y</strong> – y position of centre</li>
+<li><strong>a</strong> – major axis</li>
+<li><strong>b</strong> – minor axis</li>
+<li><strong>theta</strong> – angle of major axis</li>
+<li><strong>chan</strong> – number of channels in image</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">None</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="backend.current">
+<code class="descclassname">backend.</code><code class="descname">current</code><span class="sig-paren">(</span><em>userip</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/backend.html#current"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#backend.current" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the current folder being viewed by a user</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>userip</strong> – The IP address of the user (currently used as ID)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The name of the folder</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="backend.folderList">
+<code class="descclassname">backend.</code><code class="descname">folderList</code><span class="sig-paren">(</span><em>path</em>, <em>direction</em>, <em>userip</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/backend.html#folderList"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#backend.folderList" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generate an HTML listing of a folder</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>path</strong> – The path of the folder</li>
+<li><strong>direction</strong> – Direction of browsing (1 for going down, -1 for up)</li>
+<li><strong>userip</strong> – The IP address of the user (currently used as ID)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">HTML string</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="backend.getResource">
+<code class="descclassname">backend.</code><code class="descname">getResource</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/backend.html#getResource"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#backend.getResource" title="Permalink to this definition">¶</a></dt>
+<dd><p>Read in specified file as single string</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>filename</strong> – The name of the file to be read</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A string</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="backend.imagemeta">
+<code class="descclassname">backend.</code><code class="descname">imagemeta</code><span class="sig-paren">(</span><em>imagename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/backend.html#imagemeta"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#backend.imagemeta" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts metadata in .fits file header into HTML formatted text</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>imagename</strong> – Name of .fits file to open</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">HTML text</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="backend.makeFlagList">
+<code class="descclassname">backend.</code><code class="descname">makeFlagList</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/backend.html#makeFlagList"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#backend.makeFlagList" title="Permalink to this definition">¶</a></dt>
+<dd><p>Calls the pipeline to get a list of the flagged paths</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">List of paths</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="backend.parseRegions">
+<code class="descclassname">backend.</code><code class="descname">parseRegions</code><span class="sig-paren">(</span><em>regionfile</em>, <em>user</em>, <em>fileReq</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/backend.html#parseRegions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#backend.parseRegions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Extract information about sources in an image</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>regionfile</strong> – The .reg file specifying the ellipse of each source</li>
+<li><strong>user</strong> – The ID of the requesting user</li>
+<li><strong>fileReq</strong> – URL to locate image file</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">HTML formatted table of sources, number of sources</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="backend.prettify">
+<code class="descclassname">backend.</code><code class="descname">prettify</code><span class="sig-paren">(</span><em>constring</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/backend.html#prettify"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#backend.prettify" title="Permalink to this definition">¶</a></dt>
+<dd><p>Convert terminal colour codes to HTML</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>constring</strong> – Terminal output string</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">HTML formatted string</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="backend.procMonitor">
+<code class="descclassname">backend.</code><code class="descname">procMonitor</code><span class="sig-paren">(</span><em>command</em>, <em>targetFolder</em>, <em>user</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/backend.html#procMonitor"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#backend.procMonitor" title="Permalink to this definition">¶</a></dt>
+<dd><p>Manages the action as a child process.</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>command</strong> – The name of the command to run</li>
+<li><strong>targetFolder</strong> – The location to run it</li>
+<li><strong>user</strong> – The user index</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">None</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="backend.processimage">
+<code class="descclassname">backend.</code><code class="descname">processimage</code><span class="sig-paren">(</span><em>imagename</em>, <em>regionfile</em>, <em>marker</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/backend.html#processimage"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#backend.processimage" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates a PNG image from a fits file, and adds source information</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>imagename</strong> – Name of .fits file to work on</li>
+<li><strong>regionfile</strong> – Name of .reg file containing ellipse data</li>
+<li><strong>marker</strong> – Index of which ellipse to highlight (-1 for none)</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">HTML formatted string pointing to the saved image</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="backend.projectInfo">
+<code class="descclassname">backend.</code><code class="descname">projectInfo</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/backend.html#projectInfo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#backend.projectInfo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Produces the main page containing information about the current project</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">HTML output</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="backend.setCurrent">
+<code class="descclassname">backend.</code><code class="descname">setCurrent</code><span class="sig-paren">(</span><em>userip</em>, <em>foldername</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/backend.html#setCurrent"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#backend.setCurrent" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the current folder being viewed by a user</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>userip</strong> – The IP address of the user (currently used as ID)</li>
+<li><strong>foldername</strong> – The name of the folder</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">None</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="backend.setTarget">
+<code class="descclassname">backend.</code><code class="descname">setTarget</code><span class="sig-paren">(</span><em>t</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/backend.html#setTarget"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#backend.setTarget" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the target folder</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>t</strong> – The name of the new target folder</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">None</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="backend.startBackend">
+<code class="descclassname">backend.</code><code class="descname">startBackend</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/backend.html#startBackend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#backend.startBackend" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialises the web database (distinct from the pipeline one) and
+loads in user table</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">None</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="backend.target">
+<code class="descclassname">backend.</code><code class="descname">target</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/backend.html#target"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#backend.target" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reports the target folder</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">The name of the current target folder</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="backend.usercheck">
+<code class="descclassname">backend.</code><code class="descname">usercheck</code><span class="sig-paren">(</span><em>userip</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/backend.html#usercheck"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#backend.usercheck" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if the user is valid</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>userip</strong> – The IP address of the user (currently used as ID)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A session ID, or “False” if there is no such user</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="backend.xmlListing">
+<code class="descclassname">backend.</code><code class="descname">xmlListing</code><span class="sig-paren">(</span><em>path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/backend.html#xmlListing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#backend.xmlListing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parses XML files stored in target folders</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>path</strong> – The path name of the folder containing the .xml file</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">List of subpaths (i.e. observations) defined in the file</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+<div class="section" id="user-state">
+<h2>User State<a class="headerlink" href="#user-state" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="userstate.userState">
+<em class="property">class </em><code class="descclassname">userstate.</code><code class="descname">userState</code><a class="reference internal" href="_modules/userstate.html#userState"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#userstate.userState" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="method">
+<dt id="userstate.userState.appendBuffer">
+<code class="descname">appendBuffer</code><span class="sig-paren">(</span><em>newEntry</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/userstate.html#userState.appendBuffer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#userstate.userState.appendBuffer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add a string to the buffer</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>newEntry</strong> – The string to add</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">None</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="userstate.userState.appendQueue">
+<code class="descname">appendQueue</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/userstate.html#userState.appendQueue"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#userstate.userState.appendQueue" title="Permalink to this definition">¶</a></dt>
+<dd><p>Add the contents of the process queue to the buffer</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">None</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="userstate.userState.clearBuffer">
+<code class="descname">clearBuffer</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/userstate.html#userState.clearBuffer"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#userstate.userState.clearBuffer" title="Permalink to this definition">¶</a></dt>
+<dd><p>Clear the buffer</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="userstate.userState.finalise">
+<code class="descname">finalise</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/userstate.html#userState.finalise"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#userstate.userState.finalise" title="Permalink to this definition">¶</a></dt>
+<dd><p>Checks if the process has finished, and if so performs finalisation operations</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">None</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="index.html">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Functions</a><ul>
+<li><a class="reference internal" href="#module-pipe">Pipe module</a></li>
+<li><a class="reference internal" href="#module-backend">Web Backend</a></li>
+<li><a class="reference internal" href="#user-state">User State</a></li>
+</ul>
+</li>
+</ul>
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="design.html" title="previous chapter">Design</a></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/funcs.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Peter Hague.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+      |
+      <a href="_sources/funcs.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

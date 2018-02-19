@@ -1,0 +1,77 @@
+
+<!DOCTYPE html
+	PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+<head>
+  <title>Stoa @ {% raw hostname %}</title>
+	<link rel="stylesheet" type="text/css" href="{{ static_url("main.css") }}" />
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+		<script type="text/javascript">
+			//var ws = new WebSocket("{% raw websocketRoot %}")
+                        websocketaddr = document.location.href.replace("http", "ws")+"ws"
+			var ws = new WebSocket(websocketaddr)
+                       
+		  function login() {
+				uname = document.getElementById("uname_field").value
+				ws.send("L"+uname+","+websocketaddr)
+
+				//var d = new Date();
+        //d.setTime(d.getTime() + (7*24*60*60*1000));
+        //document.cookie = "agoraname=" + uname + ";"+ d.toUTCString();
+				urlstring = window.location.href
+        paramstring = urlstring.split("loc=")
+				actionstring = urlstring.split("action=")
+				if (paramstring.length>1) {
+					loc = paramstring[1]
+					loc = loc.split("&")[0]
+					if (actionstring.length>1) {
+						action = actionstring[1]
+						action = action.split("&")[0]
+						loc += "&action="+action
+					}
+			    window.location="/?loc="+loc
+				} else {
+					window.location="/"
+				}
+			}
+		</script>
+</head>
+
+<body >
+	<div id="banner">
+    <h1>Stoa @ {% raw hostname %}</h1>
+  </div>
+
+  <div id="main">
+
+    <div id="workarea">
+				<p>Username:</p>
+				<p><form action="javascript:login()"><input id="uname_field" type="text" name="uname" /><input value="Login" type="submit" /></form></p>
+    </div>
+
+    <div id="leftmenu">
+      <ul class="menu">
+                <li id="home" class="menuitem"><a class="white" href="javascript:getPath('H')">
+					<img src="{{ static_url("home.svg") }}" />
+				</a></li>
+				<li id="back" class="menuitem"><a class="white" href="javascript:getPath('B')">
+					<img src="{{ static_url("back.svg") }}" />
+				</a></li>
+				<li id="back" class="menuitem"><a class="white" href="javascript:getPath('A')">
+					<img src="{{ static_url("play.svg") }}" />
+				</a></li>
+				<li id="back" class="menuitem"><a class="white" href="javascript:getPath('S')">
+					<img src="{{ static_url("cog.svg") }}" />
+				</a></li>
+				<li id="back" class="menuitem"><a class="white" href="javascript:getPath('QResult!=0')">
+					<img src="{{ static_url("flag.svg") }}" />
+				</a></li>
+		        <li id="docs" class="menuitem"><a class="white" href="docs/index.html">
+					<img src="{{ static_url("page.svg") }}" />
+				</a></li>
+      </ul>
+    </div>
+  </div>
+</body>
+</html>

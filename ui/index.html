@@ -1,0 +1,113 @@
+
+<!DOCTYPE html
+	PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html>
+<head>
+  <title>Stoa @ {% raw hostname %}</title>
+	<link rel="stylesheet" type="text/css" href="{{ static_url("main.css") }}" />
+  <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
+	<script src="{{ static_url("samp.js") }}" type = "text/javascript"></script>
+	<script src="{{ static_url("tables.js") }}" type = "text/javascript"></script>
+	<script type="text/javascript">
+	var ws = new WebSocket("{% raw websocketRoot %}")
+	var counter = 0
+    var startAction = 0
+    var timedelay = 1000
+    var maxdelay = 1000
+
+    window.onhashchange = function() {
+      alert("Hash change")
+    }
+
+    /*window.addEventListener('popstate', function(e) {
+      var state = e.state
+      alert("popstate")
+      if (state != null) {
+        ws.send('B')
+      }
+    }, false)*/
+
+    function logout() {
+			ws.send("X")
+			window.location = "/login"
+		}
+
+	function getuser() {
+			setTimeout('monitor()', timedelay)
+			return
+		    window.location = "/login"
+		}
+
+    function monitor() {
+			if (document.getElementById("monitor") != null) {
+				ws.send(".1")
+				ws.send(".2")
+			}
+			if (startAction==0) {
+				{% raw action %}
+				startAction = 1
+			}
+			timedelay *= 2
+			if (timedelay>maxdelay) {
+			    timedelay = maxdelay
+			}
+			setTimeout('monitor()', timedelay)
+		}
+
+
+	</script>
+	<script src="{{ static_url("interface.js") }}" type = "text/javascript"></script>
+</head>
+
+<body onload="javascript:getuser()">
+  <div id="banner">
+    <h1>Stoa @ {% raw hostname %}</h1>
+  </div>
+
+  <div id="main">
+
+    <div id="workarea">
+				{% raw textContent %}
+    </div>
+
+		<div id="viewer">
+			  &nbsp;
+		</div>
+
+		<div id="dataarea">
+	      &nbsp;
+		</div>
+
+		<div id="tablearea">
+		    &nbsp;
+		</div>
+
+    <div id="leftmenu">
+      <ul class="menu">
+                <li id="home" class="menuitem"><a class="white" href="javascript:getPath('H')">
+					<img src="{{ static_url("home.svg") }}" />
+				</a></li>
+				<li id="back" class="menuitem"><a class="white" href="javascript:getPath('B')">
+					<img src="{{ static_url("back.svg") }}" />
+				</a></li>
+				<li id="back" class="menuitem"><a class="white" href="javascript:getPath('A')">
+					<img src="{{ static_url("play.svg") }}" />
+				</a></li>
+				<li id="back" class="menuitem"><a class="white" href="javascript:getPath('S')">
+					<img src="{{ static_url("cog.svg") }}" />
+				</a></li>
+				<li id="back" class="menuitem"><a class="white" href="javascript:getPath('QResult!=0')">
+					<img src="{{ static_url("flag.svg") }}" />
+				</a></li>
+				<li id="docs" class="menuitem"><a class="white" href="docs/index.html">
+					<img src="{{ static_url("page.svg") }}" />
+				</a></li>
+				<li id="logout" class="menuitem"><a class="white" href="javascript:logout()">
+				    <img src="{{ static_url("cross.svg") }}" />
+				</a></li>
+       </ul>
+    </div>
+  </div>
+</body>
+</html>

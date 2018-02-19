@@ -1,0 +1,10 @@
+Execution Module
+  Pipeline CLI (pipe.py)
+
+Server Module
+  WebSocket interface (webpipe.py)
+  Backend Processor (backend.py)
+
+Client Module
+  Dynamic Page (index.html, main.css, interface.js)
+  SAMP Bridge (bridge.py)

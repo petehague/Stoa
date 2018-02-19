@@ -1,0 +1,219 @@
+body {
+    background-color: #eeeeee;
+    padding: 0px;
+    margin: 0px;
+}
+
+#banner {
+    background-color: #003366;
+    left: 0px;
+    width: 100%;
+    top: 0px;
+    height: 50px;
+    border: 0px;
+    padding: 0px;
+    margin: 0px;
+    position: absolute;
+}
+
+h1 {
+    color: #ffffff;
+    font-family: sans-serif;
+    font-size: 25px;
+    border: 12px;
+    left: 120px;
+    position: absolute;
+}
+
+/* Styles for the sidebar */
+
+#leftmenu {
+    background-color: #333333;
+    left: 0px;
+    width: 100px;
+    top: 0px;
+    height: 100%;
+    margin: 0px;
+    padding: 0px;
+    border: 0px;
+    position: absolute;
+}
+
+.smallicon {
+  width: 8px;
+  height: 8px;
+}
+
+a.on {
+  top: 4px;
+  left: 0px;
+  position: absolute;
+}
+
+a.off {
+  top: 4px;
+  left: 0px;
+  position: absolute;
+}
+
+ul.menu {
+    list-style-type: none;
+    top: 50px;
+    position: absolute;
+}
+
+li.menuitem {
+    color: #ffffff;
+    top: 20px;
+    position: relative;
+    padding: 5px;
+    font-size: 14px;
+    font-family: sans-serif;
+}
+
+ul.filelist {
+  list-style-type: none;
+}
+
+li.filename {
+    color: #000000;
+    font-size: 14px;
+    font-family: monospace;
+    position: relative;
+}
+
+.filetext {
+  left: 10px;
+  position: relative;
+}
+
+a.white:link {
+    text-decoration: none;
+    color: #ffffff;
+}
+
+a.white:active {
+    text-decoration: none;
+    color: #666699;
+}
+
+/* Styles for the main workarea */
+
+#main {
+    background-color: #eeeeee;
+    position: absolute;
+    left: 0px;
+    width: 100%;
+    top: 50px;
+    height: 100%;
+    margin: 0px;
+    padding: 0px;
+    border: 0px;
+}
+
+#workarea {
+  background-color: rgba(0,0,0,0);
+  position: absolute;
+  left: 210px;
+  width: 100%;
+  top: 10px;
+  height: 100%;
+  margin: 0px;
+  border: 0px;
+  padding: 0px;
+  z-index: 1000;
+}
+
+#dataarea {
+    background-color: #eeeeee;
+    position: absolute;
+    left: 210px;
+    width: 300px;
+    top: 10px;
+    height: 350px;
+    margin: 0px;
+    border: 0px;
+    padding: 0px;
+}
+
+#viewer {
+    background-color: #eeeeee;
+    position: absolute;
+    left: 520px;
+    width: 600px;
+    top: 10px;
+    height: 350px;
+    margin: 0px;
+    border: 0px;
+    padding: 0px;
+}
+
+#tablearea {
+  background-color: #eeeeee;
+  position: absolute;
+  left: 210px;
+  top: 360px;
+  width: 100%;
+
+  margin: 0px;
+  border: 0px;
+  padding: 0px;
+}
+
+img.fitsimage {
+    position: absolute;
+    top: 0px;
+    left: 0px;
+}
+
+svg.plotarea {
+  margin: 10px;
+}
+
+h2 {
+    color: #666699;
+    font-size: 28px;
+    font-family: sans-serif;
+}
+
+table {
+    border-collapse: collapse;
+    top: 0px;
+    position: relative;
+}
+
+table, th, td {
+    border: 1px solid black;
+}
+
+#conback {
+    background-color: black;
+    height: 100%;
+}
+
+p.console {
+    word-wrap: break-word;
+    font-size: 8pt;
+    font-family: monospace;
+    color: white;
+}
+
+span.green {
+    color: green;
+}
+
+span.red {
+    color: red;
+}
+
+span.bold {
+    font-weight: bold;
+}
+
+#tabcontrols {
+  position: relative;
+}
+
+#nregs {
+  visibility: hidden;
+}

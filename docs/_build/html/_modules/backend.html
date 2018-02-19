@@ -1,0 +1,750 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>backend &#8212; STOA 0.1.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for backend</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">tornado.ioloop</span>
+<span class="kn">import</span> <span class="nn">tornado.web</span>
+<span class="kn">import</span> <span class="nn">tornado.websocket</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">glob</span>
+<span class="kn">import</span> <span class="nn">pipe</span>
+<span class="kn">from</span> <span class="nn">astropy.io</span> <span class="k">import</span> <span class="n">fits</span>
+<span class="kn">from</span> <span class="nn">astropy.table</span> <span class="k">import</span> <span class="n">Table</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">import</span> <span class="nn">xml.etree.ElementTree</span> <span class="k">as</span> <span class="nn">et</span>
+<span class="kn">import</span> <span class="nn">userstate</span>
+<span class="kn">import</span> <span class="nn">sqlite3</span> <span class="k">as</span> <span class="nn">sql</span>
+<span class="kn">from</span> <span class="nn">urllib.parse</span> <span class="k">import</span> <span class="n">urlencode</span>
+<span class="kn">from</span> <span class="nn">astropy.time</span> <span class="k">import</span> <span class="n">Time</span>
+<span class="kn">from</span> <span class="nn">multiprocessing</span> <span class="k">import</span> <span class="n">Process</span>
+
+<span class="n">profiles</span> <span class="o">=</span> <span class="p">[]</span>
+
+<span class="n">started</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="n">targetFolder</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+<span class="n">currentFolder</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="n">userspace</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="n">session</span> <span class="o">=</span> <span class="p">{}</span>
+<span class="n">runStatus</span> <span class="o">=</span> <span class="s2">&quot;Nothing&quot;</span>
+
+<span class="n">siteroot</span> <span class="o">=</span> <span class="s2">&quot;http://127.0.0.1:8888&quot;</span>
+<span class="n">scriptPath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">realpath</span><span class="p">(</span><span class="n">__file__</span><span class="p">)</span>
+<span class="n">webPath</span> <span class="o">=</span> <span class="s2">&quot;/&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="n">scriptPath</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span>
+
+<span class="n">imageid</span> <span class="o">=</span> <span class="mi">0</span>
+<span class="n">tableid</span> <span class="o">=</span> <span class="mi">0</span>
+
+<span class="n">consoleSize</span> <span class="o">=</span> <span class="mi">20</span>
+
+<div class="viewcode-block" id="startBackend"><a class="viewcode-back" href="../funcs.html#backend.startBackend">[docs]</a><span class="k">def</span> <span class="nf">startBackend</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Initialises the web database (distinct from the pipeline one) and</span>
+<span class="sd">    loads in user table</span>
+
+<span class="sd">    :return: None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">started</span>
+    <span class="k">if</span> <span class="n">started</span><span class="p">:</span>
+        <span class="k">return</span>
+    <span class="n">dbcon</span> <span class="o">=</span> <span class="n">sql</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="s1">&#39;contents.db&#39;</span><span class="p">)</span>
+    <span class="k">with</span> <span class="n">dbcon</span><span class="p">:</span>
+        <span class="n">c</span> <span class="o">=</span> <span class="n">dbcon</span><span class="o">.</span><span class="n">cursor</span><span class="p">()</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="s2">&quot;SELECT * FROM tblUsers&quot;</span><span class="p">)</span>
+        <span class="n">users</span> <span class="o">=</span> <span class="n">c</span><span class="o">.</span><span class="n">fetchall</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="n">users</span><span class="p">:</span>
+            <span class="n">userspace</span><span class="p">[</span><span class="n">u</span><span class="p">[</span><span class="mi">1</span><span class="p">]]</span> <span class="o">=</span> <span class="n">userstate</span><span class="o">.</span><span class="n">userState</span><span class="p">()</span>
+    <span class="n">started</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="c1"># TODO Generalise this</span>
+    <span class="n">pipe</span><span class="o">.</span><span class="n">opts</span><span class="p">[</span><span class="s2">&quot;ActionPath&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;/&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="n">scriptPath</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="s2">&quot;/ALMA/&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Backend started&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="addEllipse"><a class="viewcode-back" href="../funcs.html#backend.addEllipse">[docs]</a><span class="k">def</span> <span class="nf">addEllipse</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">theta</span><span class="p">,</span> <span class="n">chan</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Adds an ellipse to a bitmap image</span>
+
+<span class="sd">    :param image: numpy ndarray representing image</span>
+<span class="sd">    :param x: x position of centre</span>
+<span class="sd">    :param y: y position of centre</span>
+<span class="sd">    :param a: major axis</span>
+<span class="sd">    :param b: minor axis</span>
+<span class="sd">    :param theta: angle of major axis</span>
+<span class="sd">    :param chan: number of channels in image</span>
+<span class="sd">    :return: None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+    <span class="n">b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">b</span><span class="p">)</span>
+    <span class="n">mx</span><span class="p">,</span> <span class="n">my</span><span class="p">,</span> <span class="n">n</span> <span class="o">=</span> <span class="n">image</span><span class="o">.</span><span class="n">shape</span>
+    <span class="n">y0</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">y</span><span class="o">-</span><span class="n">a</span><span class="p">))</span>
+    <span class="n">y1</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">y</span><span class="o">+</span><span class="n">a</span><span class="p">))</span>
+    <span class="n">x0</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">x</span><span class="o">-</span><span class="n">a</span><span class="p">))</span>
+    <span class="n">x1</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">ceil</span><span class="p">(</span><span class="n">x</span><span class="o">+</span><span class="n">a</span><span class="p">))</span>
+    <span class="n">x0</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">x0</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">x0</span>
+    <span class="n">x1</span> <span class="o">=</span> <span class="n">mx</span><span class="o">-</span><span class="mi">1</span> <span class="k">if</span> <span class="n">x1</span> <span class="o">&gt;</span> <span class="n">mx</span><span class="o">-</span><span class="mi">1</span> <span class="k">else</span> <span class="n">x1</span>
+    <span class="n">y0</span> <span class="o">=</span> <span class="mi">0</span> <span class="k">if</span> <span class="n">y0</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">y0</span>
+    <span class="n">y1</span> <span class="o">=</span> <span class="n">my</span><span class="o">-</span><span class="mi">1</span> <span class="k">if</span> <span class="n">y1</span> <span class="o">&gt;</span> <span class="n">my</span><span class="o">-</span><span class="mi">1</span> <span class="k">else</span> <span class="n">y1</span>
+    <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">y0</span><span class="p">,</span> <span class="n">y1</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">x0</span><span class="p">,</span> <span class="n">x1</span><span class="p">):</span>
+            <span class="n">i</span> <span class="o">=</span> <span class="p">(</span><span class="n">u</span><span class="o">-</span><span class="n">x</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="n">v</span><span class="o">-</span><span class="n">y</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+            <span class="n">j</span> <span class="o">=</span> <span class="p">(</span><span class="n">v</span><span class="o">-</span><span class="n">y</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">cos</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span> <span class="o">-</span> <span class="p">(</span><span class="n">u</span><span class="o">-</span><span class="n">x</span><span class="p">)</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">sin</span><span class="p">(</span><span class="n">theta</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">((</span><span class="nb">abs</span><span class="p">(</span><span class="n">i</span><span class="p">)</span><span class="o">/</span><span class="n">a</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">j</span><span class="p">)</span><span class="o">/</span><span class="n">b</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span> <span class="o">&lt;</span> <span class="mi">1</span><span class="p">):</span>
+                <span class="n">image</span><span class="p">[</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">chan</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span></div>
+
+
+<div class="viewcode-block" id="imagemeta"><a class="viewcode-back" href="../funcs.html#backend.imagemeta">[docs]</a><span class="k">def</span> <span class="nf">imagemeta</span><span class="p">(</span><span class="n">imagename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Converts metadata in .fits file header into HTML formatted text</span>
+
+<span class="sd">    :param imagename: Name of .fits file to open</span>
+<span class="sd">    :return: HTML text</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">imagefile</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">imagename</span><span class="p">)</span>
+    <span class="n">headertext</span> <span class="o">=</span> <span class="s2">&quot;&lt;p&gt;&quot;</span>
+    <span class="n">head</span> <span class="o">=</span> <span class="n">imagefile</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span>
+    <span class="n">headertext</span> <span class="o">+=</span> <span class="s2">&quot;Pixel size: </span><span class="si">{}</span><span class="s2"> x </span><span class="si">{}</span><span class="s2">&lt;br /&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">head</span><span class="p">[</span><span class="s1">&#39;NAXIS1&#39;</span><span class="p">],</span>
+                                                     <span class="n">head</span><span class="p">[</span><span class="s1">&#39;NAXIS2&#39;</span><span class="p">])</span>
+    <span class="n">xsize</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">head</span><span class="p">[</span><span class="s1">&#39;CDELT1&#39;</span><span class="p">])</span><span class="o">*</span><span class="n">head</span><span class="p">[</span><span class="s1">&#39;NAXIS1&#39;</span><span class="p">]</span><span class="o">*</span><span class="mi">3600</span><span class="p">,</span> <span class="n">decimals</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">ysize</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">head</span><span class="p">[</span><span class="s1">&#39;CDELT2&#39;</span><span class="p">])</span><span class="o">*</span><span class="n">head</span><span class="p">[</span><span class="s1">&#39;NAXIS2&#39;</span><span class="p">]</span><span class="o">*</span><span class="mi">3600</span><span class="p">,</span> <span class="n">decimals</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">headertext</span> <span class="o">+=</span> <span class="s2">&quot;Sky size: </span><span class="si">{}</span><span class="s2">&#39;&#39; x </span><span class="si">{}</span><span class="s2">&#39;&#39;&lt;br /&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">xsize</span><span class="p">,</span> <span class="n">ysize</span><span class="p">)</span>
+    <span class="n">headertext</span> <span class="o">+=</span> <span class="s2">&quot;&lt;/p&gt;&quot;</span>
+    <span class="k">return</span><span class="p">(</span><span class="n">headertext</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="processimage"><a class="viewcode-back" href="../funcs.html#backend.processimage">[docs]</a><span class="k">def</span> <span class="nf">processimage</span><span class="p">(</span><span class="n">imagename</span><span class="p">,</span> <span class="n">regionfile</span><span class="p">,</span> <span class="n">marker</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generates a PNG image from a fits file, and adds source information</span>
+
+<span class="sd">    :param imagename: Name of .fits file to work on</span>
+<span class="sd">    :param regionfile: Name of .reg file containing ellipse data</span>
+<span class="sd">    :param marker: Index of which ellipse to highlight (-1 for none)</span>
+<span class="sd">    :return: HTML formatted string pointing to the saved image</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">imageid</span><span class="p">,</span> <span class="n">rgbArray</span><span class="p">,</span> <span class="n">mx</span><span class="p">,</span> <span class="n">my</span><span class="p">,</span> <span class="n">x0</span><span class="p">,</span> <span class="n">dx</span><span class="p">,</span> <span class="n">px</span><span class="p">,</span> <span class="n">y0</span><span class="p">,</span> <span class="n">dy</span><span class="p">,</span> <span class="n">py</span>
+    <span class="k">if</span> <span class="n">marker</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+        <span class="n">imageid</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="n">imagefile</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">imagename</span><span class="p">)</span>
+        <span class="n">x0</span> <span class="o">=</span> <span class="n">imagefile</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s1">&#39;CRVAL1&#39;</span><span class="p">]</span>
+        <span class="n">dx</span> <span class="o">=</span> <span class="n">imagefile</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s1">&#39;CDELT1&#39;</span><span class="p">]</span>
+        <span class="n">px</span> <span class="o">=</span> <span class="n">imagefile</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s1">&#39;CRPIX1&#39;</span><span class="p">]</span>
+        <span class="n">y0</span> <span class="o">=</span> <span class="n">imagefile</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s1">&#39;CRVAL2&#39;</span><span class="p">]</span>
+        <span class="n">dy</span> <span class="o">=</span> <span class="n">imagefile</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s1">&#39;CDELT2&#39;</span><span class="p">]</span>
+        <span class="n">py</span> <span class="o">=</span> <span class="n">imagefile</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="s1">&#39;CRPIX2&#39;</span><span class="p">]</span>
+        <span class="n">imageArray</span> <span class="o">=</span> <span class="n">imagefile</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+        <span class="n">mx</span><span class="p">,</span> <span class="n">my</span> <span class="o">=</span> <span class="n">imageArray</span><span class="o">.</span><span class="n">shape</span>
+        <span class="n">rgbArray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">(</span><span class="n">shape</span><span class="o">=</span><span class="p">(</span><span class="n">mx</span><span class="p">,</span> <span class="n">my</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+        <span class="n">norm</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">scalemin</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">mx</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">my</span><span class="p">):</span>
+                <span class="n">v</span> <span class="o">=</span> <span class="n">imageArray</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+                    <span class="n">rgbArray</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">v</span> <span class="o">&gt;</span> <span class="n">norm</span><span class="p">:</span>
+                        <span class="n">norm</span> <span class="o">=</span> <span class="n">v</span>
+                    <span class="k">if</span> <span class="n">v</span> <span class="o">&lt;</span> <span class="n">scalemin</span><span class="p">:</span>
+                        <span class="n">scalemin</span> <span class="o">=</span> <span class="n">v</span>
+                    <span class="n">rgbArray</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="p">:]</span> <span class="o">=</span> <span class="p">[</span><span class="n">v</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span>
+        <span class="n">norm</span> <span class="o">-=</span> <span class="n">scalemin</span>
+        <span class="n">rgbArray</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">:</span> <span class="mi">3</span><span class="p">]</span> <span class="o">-=</span> <span class="n">scalemin</span>
+        <span class="n">rgbArray</span><span class="p">[:,</span> <span class="p">:,</span> <span class="mi">0</span><span class="p">:</span> <span class="mi">3</span><span class="p">]</span> <span class="o">/=</span> <span class="n">norm</span>
+
+    <span class="n">colArray</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">rgbArray</span><span class="p">)</span>
+    <span class="n">markindex</span> <span class="o">=</span> <span class="mi">0</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">regionfile</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="n">regions</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">regionfile</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">reg</span> <span class="ow">in</span> <span class="n">regions</span><span class="p">:</span>
+            <span class="n">tokens</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="n">reg</span><span class="p">)</span>
+            <span class="k">if</span> <span class="s2">&quot;ellipse&quot;</span> <span class="ow">in</span> <span class="n">tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+                <span class="k">if</span> <span class="s2">&quot;red&quot;</span> <span class="ow">in</span> <span class="n">tokens</span><span class="p">[</span><span class="mi">7</span><span class="p">]:</span>
+                    <span class="n">chan</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">chan</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="k">if</span> <span class="n">markindex</span> <span class="o">==</span> <span class="n">marker</span><span class="p">:</span>
+                    <span class="n">chan</span> <span class="o">=</span> <span class="mi">2</span>
+                <span class="n">markindex</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">addEllipse</span><span class="p">(</span><span class="n">colArray</span><span class="p">,</span>
+                           <span class="n">py</span><span class="o">+</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span><span class="o">-</span><span class="n">y0</span><span class="p">)</span><span class="o">/</span><span class="n">dy</span><span class="p">,</span>
+                           <span class="n">px</span><span class="o">+</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span><span class="o">-</span><span class="n">x0</span><span class="p">)</span><span class="o">/</span><span class="n">dx</span><span class="p">,</span>
+                           <span class="nb">float</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span><span class="o">/</span><span class="n">dx</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span><span class="o">/</span><span class="n">dy</span><span class="p">,</span>
+                           <span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">2.</span> <span class="o">+</span> <span class="nb">float</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span><span class="o">*</span><span class="n">np</span><span class="o">.</span><span class="n">pi</span><span class="o">/</span><span class="mf">180.</span><span class="p">,</span>
+                           <span class="n">chan</span><span class="p">)</span>
+
+    <span class="n">plt</span><span class="o">.</span><span class="n">imsave</span><span class="p">(</span><span class="n">arr</span><span class="o">=</span><span class="n">colArray</span><span class="p">,</span>
+               <span class="n">cmap</span><span class="o">=</span><span class="s2">&quot;gray&quot;</span><span class="p">,</span>
+               <span class="n">fname</span><span class="o">=</span><span class="n">webPath</span><span class="o">+</span><span class="s2">&quot;usercache/image</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">.png&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">imageid</span><span class="p">,</span>
+                                                               <span class="n">marker</span><span class="p">))</span>
+
+    <span class="k">return</span> <span class="s2">&quot;&lt;img class=&#39;fitsimage&#39; height=300px width=300px src=</span><span class="se">\&#39;\</span>
+<span class="s2">           /stage/image</span><span class="si">{}</span><span class="s2">_</span><span class="si">{}</span><span class="s2">.png</span><span class="se">\&#39;</span><span class="s2"> /&gt;&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">imageid</span><span class="p">,</span> <span class="n">marker</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="parseRegions"><a class="viewcode-back" href="../funcs.html#backend.parseRegions">[docs]</a><span class="k">def</span> <span class="nf">parseRegions</span><span class="p">(</span><span class="n">regionfile</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">fileReq</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Extract information about sources in an image</span>
+
+<span class="sd">    :param regionfile: The .reg file specifying the ellipse of each source</span>
+<span class="sd">    :param user: The ID of the requesting user</span>
+<span class="sd">    :param fileReq: URL to locate image file</span>
+<span class="sd">    :return: HTML formatted table of sources, number of sources</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">tableid</span>
+    <span class="n">regions</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">regionfile</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+    <span class="n">path</span> <span class="o">=</span> <span class="s2">&quot;/&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="n">regionfile</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span>
+
+    <span class="n">sextractor</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">path</span><span class="o">+</span><span class="s2">&quot;s_sources.fits&quot;</span><span class="p">)</span>
+    <span class="n">aegean</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">path</span><span class="o">+</span><span class="s2">&quot;results_comp.fits&quot;</span><span class="p">)</span>
+    <span class="n">sflux</span> <span class="o">=</span> <span class="n">sextractor</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;FLUX_AUTO&#39;</span><span class="p">]</span>
+    <span class="n">sfluxerr</span> <span class="o">=</span> <span class="n">sextractor</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;FLUXERR_AUTO&#39;</span><span class="p">]</span>
+    <span class="n">aflux</span> <span class="o">=</span> <span class="n">aegean</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;int_flux&#39;</span><span class="p">]</span>
+    <span class="n">afluxerr</span> <span class="o">=</span> <span class="n">aegean</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;err_int_flux&#39;</span><span class="p">]</span>
+    <span class="n">scounter</span><span class="p">,</span> <span class="n">acounter</span><span class="p">,</span> <span class="n">totalcount</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span>
+
+    <span class="n">sampParams</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">sampParams</span><span class="p">[</span><span class="s1">&#39;name&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;Web Table&quot;</span>
+    <span class="n">sampParams</span><span class="p">[</span><span class="s1">&#39;url&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">siteroot</span><span class="o">+</span><span class="s2">&quot;/stage/table.xml&quot;</span>
+    <span class="n">sampTable</span> <span class="o">=</span> <span class="n">Table</span><span class="p">(</span><span class="n">names</span><span class="o">=</span><span class="p">(</span><span class="s2">&quot;Type&quot;</span><span class="p">,</span>
+                             <span class="s2">&quot;RA&quot;</span><span class="p">,</span>
+                             <span class="s2">&quot;Dec&quot;</span><span class="p">,</span>
+                             <span class="s2">&quot;A&quot;</span><span class="p">,</span>
+                             <span class="s2">&quot;B&quot;</span><span class="p">,</span>
+                             <span class="s2">&quot;Theta&quot;</span><span class="p">,</span>
+                             <span class="s2">&quot;Flux&quot;</span><span class="p">,</span>
+                             <span class="s2">&quot;Flux_err&quot;</span><span class="p">),</span>
+                      <span class="n">dtype</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;S1&#39;</span><span class="p">,</span> <span class="s1">&#39;f8&#39;</span><span class="p">,</span> <span class="s1">&#39;f8&#39;</span><span class="p">,</span> <span class="s1">&#39;f8&#39;</span><span class="p">,</span>
+                             <span class="s1">&#39;f8&#39;</span><span class="p">,</span> <span class="s1">&#39;f8&#39;</span><span class="p">,</span> <span class="s1">&#39;f8&#39;</span><span class="p">,</span> <span class="s1">&#39;f8&#39;</span><span class="p">))</span>
+
+    <span class="n">outstring</span> <span class="o">=</span> <span class="p">(</span><span class="s2">&quot;&lt;table&gt;&lt;tr&gt;&lt;th&gt;Type&lt;/th&gt;&lt;th&gt;RA&lt;/th&gt;&lt;th&gt;Dec&lt;/th&gt;&lt;th&gt;A&lt;/th&gt;&quot;</span>
+                 <span class="s2">&quot;&lt;th&gt;B&lt;/th&gt;&lt;th&gt;Theta&lt;/th&gt;&lt;th&gt;Flux (Jy)&lt;/th&gt;&lt;th&gt;Flux Err&lt;/th&gt;&quot;</span>
+                 <span class="s2">&quot;&lt;/tr&gt;&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">reg</span> <span class="ow">in</span> <span class="n">regions</span><span class="p">:</span>
+        <span class="n">tokens</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="n">reg</span><span class="p">)</span>
+        <span class="k">if</span> <span class="s2">&quot;ellipse&quot;</span> <span class="ow">in</span> <span class="n">tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+            <span class="k">if</span> <span class="s2">&quot;red&quot;</span> <span class="ow">in</span> <span class="n">tokens</span><span class="p">[</span><span class="mi">7</span><span class="p">]:</span>
+                <span class="n">flux</span> <span class="o">=</span> <span class="n">sflux</span><span class="p">[</span><span class="n">scounter</span><span class="p">]</span>
+                <span class="n">flux_err</span> <span class="o">=</span> <span class="n">sfluxerr</span><span class="p">[</span><span class="n">scounter</span><span class="p">]</span>
+                <span class="n">stype</span> <span class="o">=</span> <span class="s2">&quot;S&quot;</span>
+                <span class="n">scounter</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">flux</span> <span class="o">=</span> <span class="n">aflux</span><span class="p">[</span><span class="n">acounter</span><span class="p">]</span>
+                <span class="n">flux_err</span> <span class="o">=</span> <span class="n">afluxerr</span><span class="p">[</span><span class="n">acounter</span><span class="p">]</span>
+                <span class="n">stype</span> <span class="o">=</span> <span class="s2">&quot;A&quot;</span>
+                <span class="n">acounter</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="n">ra</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="mi">5</span><span class="p">)</span>
+            <span class="n">dec</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">2</span><span class="p">]),</span> <span class="mi">5</span><span class="p">)</span>
+            <span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span><span class="o">*</span><span class="mi">3600</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+            <span class="n">B</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span><span class="o">*</span><span class="mi">3600</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span>
+            <span class="n">Theta</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">round</span><span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">tokens</span><span class="p">[</span><span class="mi">5</span><span class="p">]),</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="n">outstring</span> <span class="o">+=</span> <span class="p">(</span><span class="s2">&quot;&lt;tr&gt;&lt;td&gt;&lt;a href=&#39;javascript:switchto(</span><span class="si">{}</span><span class="s2">)&#39;&gt;</span><span class="si">{}</span><span class="s2">&lt;/a&gt;&quot;</span>
+                          <span class="s2">&quot;&lt;/td&gt;&lt;td&gt;</span><span class="si">{}</span><span class="s2">&lt;/td&gt;&lt;td&gt;</span><span class="si">{}</span><span class="s2">&lt;/td&gt;&lt;td&gt;</span><span class="si">{}</span><span class="s2">&lt;/td&gt;&lt;td&gt;</span><span class="si">{}</span><span class="s2">&lt;/td&gt;&quot;</span>
+                          <span class="s2">&quot;&lt;td&gt;</span><span class="si">{}</span><span class="s2">&lt;/td&gt;&lt;td&gt;</span><span class="si">{:5.5f}</span><span class="s2">&lt;/td&gt;&lt;td&gt;</span><span class="si">{:5.5f}</span><span class="s2">&lt;/td&gt;&quot;</span>
+                          <span class="s2">&quot;&lt;/tr&gt;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">totalcount</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span>
+                                          <span class="n">stype</span><span class="p">,</span>
+                                          <span class="n">ra</span><span class="p">,</span>
+                                          <span class="n">dec</span><span class="p">,</span>
+                                          <span class="n">A</span><span class="p">,</span>
+                                          <span class="n">B</span><span class="p">,</span>
+                                          <span class="n">Theta</span><span class="p">,</span>
+                                          <span class="n">flux</span><span class="p">,</span>
+                                          <span class="n">flux_err</span><span class="p">)</span>
+            <span class="n">sampTable</span><span class="o">.</span><span class="n">add_row</span><span class="p">([</span><span class="n">stype</span><span class="p">,</span> <span class="n">ra</span><span class="p">,</span> <span class="n">dec</span><span class="p">,</span> <span class="n">A</span><span class="p">,</span> <span class="n">B</span><span class="p">,</span> <span class="n">Theta</span><span class="p">,</span> <span class="n">flux</span><span class="p">,</span> <span class="n">flux_err</span><span class="p">])</span>
+            <span class="n">totalcount</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="n">obstarget</span> <span class="o">=</span> <span class="n">fits</span><span class="o">.</span><span class="n">open</span><span class="p">(</span><span class="n">path</span><span class="o">+</span><span class="s2">&quot;input.fits&quot;</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">obstarget</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">:</span>
+        <span class="k">if</span> <span class="s1">&#39;HISTORY&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">item</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">item</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span> <span class="ow">and</span> <span class="s1">&#39;COMMENT&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">item</span><span class="p">:</span>
+            <span class="n">value</span> <span class="o">=</span> <span class="n">obstarget</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">header</span><span class="p">[</span><span class="n">item</span><span class="p">]</span>
+            <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">==</span> <span class="nb">str</span><span class="p">:</span>
+                <span class="n">col</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">totalcount</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">dtype</span><span class="p">(</span><span class="s1">&#39;S32&#39;</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">col</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">(</span><span class="n">totalcount</span><span class="p">)</span>
+            <span class="n">col</span><span class="o">.</span><span class="n">fill</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+            <span class="n">sampTable</span><span class="p">[</span><span class="n">item</span><span class="p">]</span> <span class="o">=</span> <span class="n">col</span>
+    <span class="n">linkurl</span> <span class="o">=</span> <span class="n">siteroot</span><span class="o">+</span><span class="s2">&quot;?&quot;</span><span class="o">+</span><span class="n">urlencode</span><span class="p">({</span><span class="s1">&#39;loc&#39;</span><span class="p">:</span> <span class="n">userspace</span><span class="p">[</span><span class="n">user</span><span class="p">]</span><span class="o">.</span><span class="n">folder</span><span class="p">,</span>
+                                      <span class="s1">&#39;action&#39;</span><span class="p">:</span> <span class="n">fileReq</span><span class="p">})</span>
+    <span class="n">outstring</span> <span class="o">+=</span> <span class="s2">&quot;&lt;/table&gt;&lt;div id=&#39;tabcontrols&#39;&gt;&lt;a href=&#39;javascript:sendTable(</span><span class="se">\&quot;</span><span class="s2">&quot;</span><span class="o">+</span><span class="n">siteroot</span><span class="o">+</span><span class="s2">&quot;/stage/table</span><span class="si">{}</span><span class="s2">.xml</span><span class="se">\&quot;</span><span class="s2">)&#39;&gt;</span><span class="se">\</span>
+<span class="s2">                 Send via SAMP&lt;/a&gt;&lt;br /&gt;&lt;a href=&#39;</span><span class="si">{}</span><span class="s2">&#39;&gt;Send as link&lt;/a&gt;</span><span class="se">\</span>
+<span class="s2">                 &lt;/div&gt;&lt;div id=&#39;nregs&#39;\style=&#39;visibility: hidden&#39;&gt;</span><span class="se">\</span>
+<span class="s2">                 </span><span class="si">{}</span><span class="s2">&lt;/div&gt;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tableid</span><span class="p">,</span> <span class="n">linkurl</span><span class="p">,</span> <span class="n">totalcount</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;rm -f &quot;</span><span class="o">+</span><span class="n">webPath</span><span class="o">+</span><span class="s2">&quot;usercache/table</span><span class="si">{}</span><span class="s2">.xml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tableid</span><span class="p">))</span>
+    <span class="n">sampTable</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">webPath</span><span class="o">+</span><span class="s2">&quot;usercache/table</span><span class="si">{}</span><span class="s2">.xml&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">tableid</span><span class="p">),</span>
+                    <span class="nb">format</span><span class="o">=</span><span class="s2">&quot;votable&quot;</span><span class="p">)</span>
+    <span class="n">tableid</span> <span class="o">+=</span> <span class="mi">1</span>
+    <span class="k">return</span> <span class="n">outstring</span><span class="p">,</span> <span class="n">totalcount</span></div>
+
+
+<div class="viewcode-block" id="projectInfo"><a class="viewcode-back" href="../funcs.html#backend.projectInfo">[docs]</a><span class="k">def</span> <span class="nf">projectInfo</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Produces the main page containing information about the current project</span>
+
+<span class="sd">    :return: HTML output</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">outstring</span> <span class="o">=</span> <span class="s1">&#39;&lt;h2&gt;ALMA Archive&lt;/h2&gt;&#39;</span>
+    <span class="n">outstring</span> <span class="o">+=</span> <span class="s1">&#39;&lt;p&gt;&lt;a href=&quot;javascript:getPath(</span><span class="se">\&#39;</span><span class="s1">V</span><span class="se">\&#39;</span><span class="s1">)&quot;&gt;</span><span class="se">\</span>
+<span class="s1">                  Browse all folders&lt;/a&gt;&lt;/p&gt;&#39;</span>
+    <span class="n">outstring</span> <span class="o">+=</span> <span class="s1">&#39;&lt;p&gt;&lt;a href=&quot;javascript:getPath(</span><span class="se">\&#39;</span><span class="s1">C</span><span class="se">\&#39;</span><span class="s1">)&quot;&gt;</span><span class="se">\</span>
+<span class="s1">                  Create new results table&lt;/a&gt;&lt;/p&gt;&#39;</span>
+
+    <span class="n">outstring</span> <span class="o">+=</span> <span class="s1">&#39;&lt;p&gt;&#39;</span>
+    <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">webPath</span><span class="o">+</span><span class="s2">&quot;usercache/*results*&quot;</span><span class="p">):</span>
+        <span class="n">outstring</span> <span class="o">+=</span> <span class="s1">&#39;&lt;a href=&quot;&#39;</span><span class="o">+</span><span class="n">siteroot</span><span class="o">+</span><span class="s1">&#39;/stage/</span><span class="si">{0}</span><span class="s1">&quot;&gt;</span><span class="si">{0}</span><span class="s1">&lt;/a&gt;&lt;br /&gt;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+    <span class="n">outstring</span> <span class="o">+=</span> <span class="s1">&#39;&lt;/p&gt;&#39;</span>
+    <span class="k">return</span> <span class="n">outstring</span></div>
+
+<div class="viewcode-block" id="target"><a class="viewcode-back" href="../funcs.html#backend.target">[docs]</a><span class="k">def</span> <span class="nf">target</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Reports the target folder</span>
+
+<span class="sd">    :return: The name of the current target folder</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">targetFolder</span></div>
+
+
+<div class="viewcode-block" id="setTarget"><a class="viewcode-back" href="../funcs.html#backend.setTarget">[docs]</a><span class="k">def</span> <span class="nf">setTarget</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Sets the target folder</span>
+
+<span class="sd">    :param t: The name of the new target folder</span>
+<span class="sd">    :return: None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">targetFolder</span>
+    <span class="k">if</span> <span class="n">t</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="s1">&#39;/&#39;</span><span class="p">:</span>
+        <span class="n">t</span> <span class="o">+=</span> <span class="s1">&#39;/&#39;</span>
+    <span class="n">targetFolder</span> <span class="o">=</span> <span class="n">t</span>
+    <span class="n">pipe</span><span class="o">.</span><span class="n">setProctabPath</span><span class="p">(</span><span class="n">t</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="current"><a class="viewcode-back" href="../funcs.html#backend.current">[docs]</a><span class="k">def</span> <span class="nf">current</span><span class="p">(</span><span class="n">userip</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Get the current folder being viewed by a user</span>
+
+<span class="sd">    :param userip: The IP address of the user (currently used as ID)</span>
+<span class="sd">    :return: The name of the folder</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">userspace</span><span class="p">[</span><span class="n">session</span><span class="p">[</span><span class="n">userip</span><span class="p">]]</span><span class="o">.</span><span class="n">folder</span></div>
+
+
+<div class="viewcode-block" id="setCurrent"><a class="viewcode-back" href="../funcs.html#backend.setCurrent">[docs]</a><span class="k">def</span> <span class="nf">setCurrent</span><span class="p">(</span><span class="n">userip</span><span class="p">,</span> <span class="n">foldername</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Sets the current folder being viewed by a user</span>
+
+<span class="sd">    :param userip: The IP address of the user (currently used as ID)</span>
+<span class="sd">    :param foldername: The name of the folder</span>
+<span class="sd">    :return: None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">userspace</span><span class="p">[</span><span class="n">session</span><span class="p">[</span><span class="n">userip</span><span class="p">]]</span><span class="o">.</span><span class="n">folder</span> <span class="o">=</span> <span class="n">foldername</span></div>
+
+
+<div class="viewcode-block" id="usercheck"><a class="viewcode-back" href="../funcs.html#backend.usercheck">[docs]</a><span class="k">def</span> <span class="nf">usercheck</span><span class="p">(</span><span class="n">userip</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Check if the user is valid</span>
+
+<span class="sd">    :param userip: The IP address of the user (currently used as ID)</span>
+<span class="sd">    :return: A session ID, or &quot;False&quot; if there is no such user</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">userip</span> <span class="ow">in</span> <span class="n">session</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">session</span><span class="p">[</span><span class="n">userip</span><span class="p">]</span> <span class="ow">in</span> <span class="n">userspace</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+
+<div class="viewcode-block" id="getResource"><a class="viewcode-back" href="../funcs.html#backend.getResource">[docs]</a><span class="k">def</span> <span class="nf">getResource</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Read in specified file as single string</span>
+
+<span class="sd">    :param filename: The name of the file to be read</span>
+<span class="sd">    :return: A string</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
+    <span class="n">content</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">content</span> <span class="o">+=</span> <span class="n">line</span>
+    <span class="k">return</span> <span class="n">content</span></div>
+
+
+<div class="viewcode-block" id="makeFlagList"><a class="viewcode-back" href="../funcs.html#backend.makeFlagList">[docs]</a><span class="k">def</span> <span class="nf">makeFlagList</span><span class="p">():</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Calls the pipeline to get a list of the flagged paths</span>
+
+<span class="sd">    :return: List of paths</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">pipe</span><span class="o">.</span><span class="n">doRun</span><span class="p">(</span><span class="s2">&quot;none&quot;</span><span class="p">)</span></div>
+    <span class="c1"># Add a caching system later</span>
+
+
+<div class="viewcode-block" id="xmlListing"><a class="viewcode-back" href="../funcs.html#backend.xmlListing">[docs]</a><span class="k">def</span> <span class="nf">xmlListing</span><span class="p">(</span><span class="n">path</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Parses XML files stored in target folders</span>
+
+<span class="sd">    :param path: The path name of the folder containing the .xml file</span>
+<span class="sd">    :return: List of subpaths (i.e. observations) defined in the file</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">tree</span> <span class="o">=</span> <span class="n">et</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">path</span><span class="o">+</span><span class="s2">&quot;product.xml&quot;</span><span class="p">)</span>
+    <span class="n">nodes</span> <span class="o">=</span> <span class="n">tree</span><span class="o">.</span><span class="n">getroot</span><span class="p">()</span>
+    <span class="n">listing</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span><span class="p">[</span><span class="mi">0</span><span class="p">]:</span>
+        <span class="n">listing</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">path</span><span class="o">+</span><span class="n">node</span><span class="o">.</span><span class="n">attrib</span><span class="p">[</span><span class="s1">&#39;key&#39;</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">listing</span></div>
+
+
+<div class="viewcode-block" id="folderList"><a class="viewcode-back" href="../funcs.html#backend.folderList">[docs]</a><span class="k">def</span> <span class="nf">folderList</span><span class="p">(</span><span class="n">path</span><span class="p">,</span> <span class="n">direction</span><span class="p">,</span> <span class="n">userip</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Generate an HTML listing of a folder</span>
+
+<span class="sd">    :param path: The path of the folder</span>
+<span class="sd">    :param direction: Direction of browsing (1 for going down, -1 for up)</span>
+<span class="sd">    :param userip:  The IP address of the user (currently used as ID)</span>
+<span class="sd">    :return: HTML string</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">userspace</span>
+    <span class="n">user</span> <span class="o">=</span> <span class="n">session</span><span class="p">[</span><span class="n">userip</span><span class="p">]</span>
+    <span class="n">currentFolder</span> <span class="o">=</span> <span class="n">userspace</span><span class="p">[</span><span class="n">user</span><span class="p">]</span><span class="o">.</span><span class="n">folder</span>
+
+    <span class="n">flaglist</span> <span class="o">=</span> <span class="n">makeFlagList</span><span class="p">()</span>
+    <span class="n">filelist</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">path</span><span class="o">+</span><span class="s2">&quot;*&quot;</span><span class="p">)</span>
+    <span class="n">filelist</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">filelist</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">direction</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">clip</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="n">currentFolder</span><span class="p">)[</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span><span class="o">+</span><span class="mi">1</span>
+            <span class="n">currentFolder</span> <span class="o">=</span> <span class="n">currentFolder</span><span class="p">[:</span><span class="o">-</span><span class="n">clip</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">currentFolder</span> <span class="o">+=</span> <span class="s2">&quot;/&quot;</span><span class="o">+</span><span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="n">filelist</span><span class="p">[</span><span class="mi">0</span><span class="p">])[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span>
+        <span class="n">userspace</span><span class="p">[</span><span class="n">user</span><span class="p">]</span><span class="o">.</span><span class="n">folder</span> <span class="o">=</span> <span class="n">currentFolder</span>
+        <span class="k">return</span> <span class="n">folderList</span><span class="p">(</span><span class="n">targetFolder</span><span class="o">+</span><span class="n">currentFolder</span><span class="p">,</span> <span class="n">direction</span><span class="p">,</span> <span class="n">userip</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">path</span><span class="o">+</span><span class="s2">&quot;product.xml&quot;</span> <span class="ow">in</span> <span class="n">filelist</span><span class="p">:</span>
+        <span class="n">filelist</span> <span class="o">=</span> <span class="n">xmlListing</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+    <span class="n">output</span> <span class="o">=</span> <span class="s1">&#39;&lt;ul class=&quot;filelist&quot;&gt;&#39;</span>
+    <span class="k">for</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">filelist</span><span class="p">:</span>
+        <span class="n">shortfile</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="n">filename</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isdir</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+            <span class="n">output</span> <span class="o">+=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&lt;li class=&quot;filename&quot;&gt;&lt;div class=&quot;filetext&quot;&gt;</span><span class="se">\</span>
+<span class="s1">                       &lt;a href=&quot;javascript:getPath(</span><span class="se">\&#39;</span><span class="s1">V</span><span class="si">{0}</span><span class="se">\&#39;</span><span class="s1">)&quot;&gt;</span><span class="se">\</span>
+<span class="s1">                       </span><span class="si">{1}</span><span class="s1">&lt;/a&gt;&lt;/div&gt;&lt;/li&gt;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="n">shortfile</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">template</span> <span class="o">=</span> <span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&lt;li class=&quot;filename&quot; id=&quot;</span><span class="si">{1}</span><span class="s1">&quot;&gt;&lt;div class=&quot;filetext&quot;&gt;</span><span class="se">\</span>
+<span class="s1">            &lt;a href=&quot;javascript:view(</span><span class="se">\&#39;</span><span class="si">{1}</span><span class="se">\&#39;</span><span class="s1">)&quot;&gt;</span><span class="si">{0}</span><span class="s1">&lt;/a&gt;&lt;/div&gt;&lt;a class=&quot;off&quot;</span><span class="se">\</span>
+<span class="s1">            href=&quot;javascript:flag(</span><span class="se">\&#39;</span><span class="si">{1}</span><span class="se">\&#39;</span><span class="s1">,1)&quot; style=&quot;visibility: </span><span class="si">{4}</span><span class="s1">&quot;</span><span class="se">\</span>
+<span class="s1">            id=&quot;</span><span class="si">{1}</span><span class="s1">&quot;&gt;</span><span class="si">{2}</span><span class="s1">&lt;/a&gt;&lt;a class=&quot;on&quot; href=&quot;javascript:flag(</span><span class="se">\&#39;</span><span class="si">{1}</span><span class="se">\&#39;</span><span class="s1">,0)&quot;</span><span class="se">\</span>
+<span class="s1">            style=&quot;visibility: </span><span class="si">{5}</span><span class="s1">&quot; id=&quot;</span><span class="si">{1}</span><span class="s1">&quot;&gt;</span><span class="si">{3}</span><span class="s1">&lt;/a&gt;&lt;/li&gt;&#39;</span>
+            <span class="n">star</span> <span class="o">=</span> <span class="n">getResource</span><span class="p">(</span><span class="n">webPath</span><span class="o">+</span><span class="s2">&quot;ui/star.svg&quot;</span><span class="p">)</span>
+            <span class="n">fstar</span> <span class="o">=</span> <span class="n">getResource</span><span class="p">(</span><span class="n">webPath</span><span class="o">+</span><span class="s2">&quot;ui/fillstar.svg&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">filename</span> <span class="ow">in</span> <span class="n">flaglist</span><span class="p">:</span>
+                <span class="n">output</span> <span class="o">+=</span> <span class="n">template</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">shortfile</span><span class="p">,</span>
+                                          <span class="n">filename</span><span class="p">,</span>
+                                          <span class="n">star</span><span class="p">,</span>
+                                          <span class="n">fstar</span><span class="p">,</span>
+                                          <span class="s2">&quot;hidden&quot;</span><span class="p">,</span>
+                                          <span class="s2">&quot;visible&quot;</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">output</span> <span class="o">+=</span> <span class="n">template</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">shortfile</span><span class="p">,</span>
+                                          <span class="n">filename</span><span class="p">,</span>
+                                          <span class="n">star</span><span class="p">,</span>
+                                          <span class="n">fstar</span><span class="p">,</span>
+                                          <span class="s2">&quot;visible&quot;</span><span class="p">,</span>
+                                          <span class="s2">&quot;hidden&quot;</span><span class="p">)</span>
+    <span class="n">output</span> <span class="o">+=</span> <span class="s2">&quot;&lt;/ul&gt;&quot;</span>
+    <span class="n">userspace</span><span class="p">[</span><span class="n">user</span><span class="p">]</span><span class="o">.</span><span class="n">folder</span> <span class="o">=</span> <span class="n">currentFolder</span>
+    <span class="k">return</span> <span class="n">output</span></div>
+
+
+<div class="viewcode-block" id="prettify"><a class="viewcode-back" href="../funcs.html#backend.prettify">[docs]</a><span class="k">def</span> <span class="nf">prettify</span><span class="p">(</span><span class="n">constring</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Convert terminal colour codes to HTML</span>
+
+<span class="sd">    :param constring: Terminal output string</span>
+<span class="sd">    :return: HTML formatted string</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">targets</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">:</span> <span class="s1">&#39;&lt;br /&gt;&#39;</span><span class="p">,</span>
+               <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[1m&#39;</span><span class="p">:</span> <span class="s1">&#39;&lt;span class=&quot;bold&quot;&gt;&#39;</span><span class="p">,</span>
+               <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[0m&#39;</span><span class="p">:</span> <span class="s1">&#39;&lt;/span&gt;&#39;</span><span class="p">,</span>
+               <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[91m&#39;</span><span class="p">:</span> <span class="s1">&#39;&lt;span class=&quot;red&quot;&gt;&#39;</span><span class="p">,</span>
+               <span class="s1">&#39;</span><span class="se">\033</span><span class="s1">[92m&#39;</span><span class="p">:</span> <span class="s1">&#39;&lt;span class=&quot;green&quot;&gt;&#39;</span><span class="p">}</span>
+    <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">targets</span><span class="p">:</span>
+        <span class="n">constring</span> <span class="o">=</span> <span class="n">constring</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">targets</span><span class="p">[</span><span class="n">t</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">constring</span></div>
+
+
+<div class="viewcode-block" id="procMonitor"><a class="viewcode-back" href="../funcs.html#backend.procMonitor">[docs]</a><span class="k">def</span> <span class="nf">procMonitor</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="n">targetFolder</span><span class="p">,</span> <span class="n">user</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Manages the action as a child process.</span>
+
+<span class="sd">    :param command: The name of the command to run</span>
+<span class="sd">    :param targetFolder: The location to run it</span>
+<span class="sd">    :param user: The user index</span>
+<span class="sd">    :return: None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">global</span> <span class="n">userspace</span>
+    <span class="k">for</span> <span class="n">report</span> <span class="ow">in</span> <span class="n">pipe</span><span class="o">.</span><span class="n">commandgen</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="n">targetFolder</span><span class="p">):</span>
+        <span class="n">repstring</span> <span class="o">=</span> <span class="s2">&quot;</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">prettify</span><span class="p">(</span><span class="n">report</span><span class="p">))</span>
+        <span class="n">userspace</span><span class="p">[</span><span class="n">user</span><span class="p">]</span><span class="o">.</span><span class="n">q</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">repstring</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="SocketHandler"><a class="viewcode-back" href="../funcs.html#backend.SocketHandler">[docs]</a><span class="k">class</span> <span class="nc">SocketHandler</span><span class="p">(</span><span class="n">tornado</span><span class="o">.</span><span class="n">websocket</span><span class="o">.</span><span class="n">WebSocketHandler</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Handler for WebSocket connections</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">users</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+    <span class="c1"># reqorigin = &quot;&quot;</span>
+    <span class="n">userip</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+
+<div class="viewcode-block" id="SocketHandler.check_origin"><a class="viewcode-back" href="../funcs.html#backend.SocketHandler.check_origin">[docs]</a>    <span class="k">def</span> <span class="nf">check_origin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">origin</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        To be implemented for security checks</span>
+
+<span class="sd">        :param origin: Page originating WS request</span>
+<span class="sd">        :return: Always &quot;True&quot; at the moment</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># Code for checking page originating WS request</span>
+        <span class="c1"># print(urllib.parse.urlparse(origin))</span>
+        <span class="c1"># self.reqorigin = urllib.parse.urlparse(origin).netloc</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="SocketHandler.open"><a class="viewcode-back" href="../funcs.html#backend.SocketHandler.open">[docs]</a>    <span class="k">def</span> <span class="nf">open</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Opens WebSocket</span>
+
+<span class="sd">        :return: None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;WebSocket opened&quot;</span><span class="p">)</span>
+        <span class="n">SocketHandler</span><span class="o">.</span><span class="n">users</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="SocketHandler.on_message"><a class="viewcode-back" href="../funcs.html#backend.SocketHandler.on_message">[docs]</a>    <span class="k">def</span> <span class="nf">on_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">message</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Responds to WS messages. Action is determined by first character</span>
+<span class="sd">        of message</span>
+
+<span class="sd">        * L: Login</span>
+<span class="sd">        * H: Home</span>
+<span class="sd">        * B: Back</span>
+<span class="sd">        * V: View folder</span>
+<span class="sd">        * F: Flag target</span>
+<span class="sd">        * U: Unflag target</span>
+<span class="sd">        * A: Get action list</span>
+<span class="sd">        * R: Run the specified action</span>
+<span class="sd">        * D: Display a file</span>
+<span class="sd">        * C: Concatenate results</span>
+<span class="sd">        * Q: Query the process table</span>
+<span class="sd">        * X: Logout</span>
+
+<span class="sd">        :param message: WS message string</span>
+<span class="sd">        :return: None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">global</span> <span class="n">currentFolder</span><span class="p">,</span> <span class="n">imageid</span><span class="p">,</span> <span class="n">userspace</span>
+
+        <span class="n">userip</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">remote_ip</span>
+
+        <span class="k">if</span> <span class="n">message</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;L&#39;</span><span class="p">:</span>
+            <span class="n">session</span><span class="p">[</span><span class="n">userip</span><span class="p">]</span> <span class="o">=</span> <span class="n">message</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+
+        <span class="k">if</span> <span class="n">userip</span> <span class="ow">in</span> <span class="n">session</span><span class="p">:</span>
+            <span class="n">user</span> <span class="o">=</span> <span class="n">session</span><span class="p">[</span><span class="n">userip</span><span class="p">]</span>
+            <span class="n">currentFolder</span> <span class="o">=</span> <span class="n">userspace</span><span class="p">[</span><span class="n">user</span><span class="p">]</span><span class="o">.</span><span class="n">folder</span>
+            <span class="n">userspace</span><span class="p">[</span><span class="n">user</span><span class="p">]</span><span class="o">.</span><span class="n">ip</span> <span class="o">=</span> <span class="n">userip</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_message</span><span class="p">(</span><span class="s1">&#39;&lt;script  type=&quot;text/javascript&quot;&gt;window.location=&quot;/login&quot;&lt;/script&gt;&#39;</span><span class="p">)</span>
+            <span class="k">return</span>
+
+        <span class="c1"># Always attempt to finanlise any process running</span>
+        <span class="n">userspace</span><span class="p">[</span><span class="n">user</span><span class="p">]</span><span class="o">.</span><span class="n">finalise</span><span class="p">()</span>
+
+        <span class="k">if</span> <span class="n">message</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;.&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">message</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;1&#39;</span><span class="p">:</span>
+                <span class="k">return</span>
+            <span class="k">if</span> <span class="n">message</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;2&#39;</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">userspace</span><span class="p">[</span><span class="n">user</span><span class="p">]</span><span class="o">.</span><span class="n">procreport</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">write_message</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="o">+</span><span class="n">userspace</span><span class="p">[</span><span class="n">user</span><span class="p">]</span><span class="o">.</span><span class="n">procreport</span><span class="p">)</span>
+                    <span class="n">userspace</span><span class="p">[</span><span class="n">user</span><span class="p">]</span><span class="o">.</span><span class="n">procreport</span><span class="o">=</span><span class="s2">&quot;&quot;</span> <span class="c1">#This needs changing really</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">write_message</span><span class="p">(</span><span class="s2">&quot;t1000&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">userspace</span><span class="p">[</span><span class="n">user</span><span class="p">]</span><span class="o">.</span><span class="n">appendQueue</span><span class="p">()</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">write_message</span><span class="p">(</span><span class="s2">&quot;+&lt;div id=&#39;conback&#39;&gt;&lt;p class=&#39;console&#39;&gt;&quot;</span><span class="o">+</span><span class="s2">&quot;&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">userspace</span><span class="p">[</span><span class="n">user</span><span class="p">]</span><span class="o">.</span><span class="n">buff</span><span class="p">[</span><span class="o">-</span><span class="n">consoleSize</span><span class="p">:])</span><span class="o">+</span><span class="s2">&quot;&lt;/p&gt;&lt;/div&gt;&quot;</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">write_message</span><span class="p">(</span><span class="s2">&quot;t10&quot;</span><span class="p">)</span>
+                <span class="k">return</span>
+
+        <span class="nb">print</span><span class="p">(</span><span class="n">user</span><span class="o">+</span><span class="s2">&quot;(&quot;</span><span class="o">+</span><span class="n">userip</span><span class="o">+</span><span class="s2">&quot;): &quot;</span><span class="o">+</span><span class="n">message</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">message</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;H&#39;</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_message</span><span class="p">(</span><span class="n">projectInfo</span><span class="p">())</span>
+            <span class="sd">&#39;&#39;&#39;userspace[user].folder = currentFolder = &quot;&quot;</span>
+<span class="sd">            self.write_message(folderList(targetFolder+currentFolder,</span>
+<span class="sd">                                          1, userip))&#39;&#39;&#39;</span>
+
+        <span class="k">if</span> <span class="n">message</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;B&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="n">currentFolder</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">clip</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="n">currentFolder</span><span class="p">)[</span><span class="o">-</span><span class="mi">2</span><span class="p">])</span><span class="o">+</span><span class="mi">1</span>
+                <span class="n">currentFolder</span> <span class="o">=</span> <span class="n">currentFolder</span><span class="p">[:</span><span class="o">-</span><span class="n">clip</span><span class="p">]</span>
+                <span class="n">userspace</span><span class="p">[</span><span class="n">user</span><span class="p">]</span><span class="o">.</span><span class="n">folder</span> <span class="o">=</span> <span class="n">currentFolder</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">write_message</span><span class="p">(</span><span class="n">folderList</span><span class="p">(</span><span class="n">targetFolder</span><span class="o">+</span><span class="n">currentFolder</span><span class="p">,</span>
+                                              <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">userip</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">message</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;V&#39;</span><span class="p">:</span>
+            <span class="n">currentFolder</span> <span class="o">+=</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="n">message</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="s2">&quot;/&quot;</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">message</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">currentFolder</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+            <span class="n">userspace</span><span class="p">[</span><span class="n">user</span><span class="p">]</span><span class="o">.</span><span class="n">folder</span> <span class="o">=</span> <span class="n">currentFolder</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_message</span><span class="p">(</span><span class="n">folderList</span><span class="p">(</span><span class="n">targetFolder</span><span class="o">+</span><span class="n">currentFolder</span><span class="p">,</span>
+                                          <span class="mi">1</span><span class="p">,</span> <span class="n">userip</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">message</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;F&#39;</span><span class="p">:</span>
+            <span class="n">pipe</span><span class="o">.</span><span class="n">doFlag</span><span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+
+        <span class="k">if</span> <span class="n">message</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;U&#39;</span><span class="p">:</span>
+            <span class="n">pipe</span><span class="o">.</span><span class="n">doUnflag</span><span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+
+        <span class="k">if</span> <span class="n">message</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;A&#39;</span><span class="p">:</span>
+            <span class="n">commandtext</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+            <span class="n">commandlist</span> <span class="o">=</span> <span class="n">pipe</span><span class="o">.</span><span class="n">doActlist</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+            <span class="n">monitor</span> <span class="o">=</span> <span class="s2">&quot;&lt;div id=monitor&gt;&lt;/div&gt;&quot;</span>
+            <span class="k">for</span> <span class="n">command</span> <span class="ow">in</span> <span class="n">commandlist</span><span class="p">:</span>
+                <span class="n">commandtext</span> <span class="o">+=</span> <span class="s1">&#39;&lt;a href=&quot;javascript:execute(</span><span class="se">\&#39;</span><span class="si">{0}</span><span class="se">\&#39;</span><span class="s1">)&quot;&gt;</span><span class="se">\</span>
+<span class="s1">                                </span><span class="si">{0}</span><span class="s1">&lt;/a&gt;&lt;br /&gt;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">command</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_message</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="o">+</span><span class="n">monitor</span><span class="o">+</span><span class="n">commandtext</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">message</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;R&#39;</span><span class="p">:</span>
+            <span class="n">monitor</span> <span class="o">=</span> <span class="s2">&quot;&lt;div id=monitor&gt;&lt;/div&gt;&quot;</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_message</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="o">+</span><span class="n">monitor</span><span class="o">+</span><span class="s2">&quot;Processing command &quot;</span><span class="o">+</span><span class="n">message</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">+</span><span class="s2">&quot;...&quot;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">userspace</span><span class="p">[</span><span class="n">user</span><span class="p">]</span><span class="o">.</span><span class="n">proc</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">):</span>
+                <span class="n">userspace</span><span class="p">[</span><span class="n">user</span><span class="p">]</span><span class="o">.</span><span class="n">proc</span> <span class="o">=</span> <span class="n">Process</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="n">procMonitor</span><span class="p">,</span>
+                                               <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span><span class="o">.</span><span class="n">strip</span><span class="p">(),</span>
+                                                     <span class="n">targetFolder</span><span class="p">,</span>
+                                                     <span class="n">user</span><span class="p">))</span>
+                <span class="n">userspace</span><span class="p">[</span><span class="n">user</span><span class="p">]</span><span class="o">.</span><span class="n">proc</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">write_message</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="o">+</span><span class="n">monitor</span><span class="o">+</span><span class="s2">&quot;Action already in progress&quot;</span><span class="p">)</span>
+
+
+        <span class="k">if</span> <span class="n">message</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;D&#39;</span><span class="p">:</span>
+            <span class="n">fileReq</span> <span class="o">=</span> <span class="n">message</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+            <span class="k">if</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s2">&quot;.fits&quot;</span><span class="p">,</span> <span class="n">fileReq</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">write_message</span><span class="p">(</span><span class="s2">&quot;+Loading image...&quot;</span><span class="p">)</span>
+                <span class="n">rfilename</span> <span class="o">=</span> <span class="n">targetFolder</span><span class="o">+</span><span class="n">currentFolder</span><span class="o">+</span><span class="s2">&quot;detections.reg&quot;</span>
+                <span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">rfilename</span><span class="p">):</span>
+                    <span class="n">regs</span><span class="p">,</span> <span class="n">nregs</span> <span class="o">=</span> <span class="n">parseRegions</span><span class="p">(</span><span class="n">rfilename</span><span class="p">,</span> <span class="n">user</span><span class="p">,</span> <span class="n">fileReq</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">rfilename</span><span class="p">,</span> <span class="n">regs</span><span class="p">,</span> <span class="n">nregs</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="s2">&quot;&quot;</span><span class="p">,</span> <span class="mi">0</span>
+                <span class="n">imageblock</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">nregs</span><span class="p">):</span>
+                    <span class="n">visword</span> <span class="o">=</span> <span class="s2">&quot;visible&quot;</span> <span class="k">if</span> <span class="n">i</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span> <span class="k">else</span> <span class="s2">&quot;hidden&quot;</span>
+                    <span class="n">image</span> <span class="o">=</span> <span class="n">processimage</span><span class="p">(</span><span class="n">fileReq</span><span class="p">,</span> <span class="n">rfilename</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+                    <span class="n">imageblock</span> <span class="o">+=</span> <span class="s2">&quot;&lt;div id=&#39;img_</span><span class="si">{}</span><span class="s2">&#39; </span><span class="se">\</span>
+<span class="s2">                    style=&#39;visibility:</span><span class="si">{}</span><span class="s2">&#39;&gt;</span><span class="si">{}</span><span class="s2">&lt;/div&gt;</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span>
+                                                             <span class="n">visword</span><span class="p">,</span>
+                                                             <span class="n">image</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">write_message</span><span class="p">(</span><span class="s2">&quot;+&quot;</span><span class="o">+</span><span class="n">imageblock</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">write_message</span><span class="p">(</span><span class="s2">&quot;*&quot;</span><span class="o">+</span><span class="n">regs</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">write_message</span><span class="p">(</span><span class="s2">&quot;#&quot;</span><span class="o">+</span><span class="n">imagemeta</span><span class="p">(</span><span class="n">fileReq</span><span class="p">))</span>
+
+        <span class="k">if</span> <span class="n">message</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;C&#39;</span><span class="p">:</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">targetFolder</span><span class="p">)</span>
+            <span class="c1"># This needs to be taken out of the code and generalised!</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="n">webPath</span><span class="o">+</span><span class="s2">&quot;/ALMA/concat.py &quot;</span><span class="o">+</span><span class="n">siteroot</span><span class="p">)</span>
+            <span class="n">t</span> <span class="o">=</span> <span class="n">Time</span><span class="p">(</span><span class="n">Time</span><span class="o">.</span><span class="n">now</span><span class="p">())</span>
+            <span class="n">t</span><span class="o">.</span><span class="n">format</span> <span class="o">=</span> <span class="s1">&#39;isot&#39;</span>
+            <span class="n">timestamp</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">value</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;cp a_results.fits </span><span class="si">{}</span><span class="s2">/usercache/a_results_</span><span class="si">{}</span><span class="s2">.fits&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">webPath</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">))</span>
+            <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="s2">&quot;cp s_results.fits </span><span class="si">{}</span><span class="s2">/usercache/s_results_</span><span class="si">{}</span><span class="s2">.fits&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">webPath</span><span class="p">,</span> <span class="n">timestamp</span><span class="p">))</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_message</span><span class="p">(</span><span class="n">projectInfo</span><span class="p">())</span>
+
+        <span class="k">if</span> <span class="n">message</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;Q&#39;</span><span class="p">:</span>
+            <span class="n">result</span> <span class="o">=</span> <span class="s2">&quot;&lt;p&gt;&quot;</span>
+            <span class="n">pathlist</span> <span class="o">=</span> <span class="n">pipe</span><span class="o">.</span><span class="n">doQuery</span><span class="p">(</span><span class="n">message</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span>
+            <span class="k">for</span> <span class="n">pathname</span> <span class="ow">in</span> <span class="n">pathlist</span><span class="p">:</span>
+                <span class="n">result</span> <span class="o">+=</span> <span class="s1">&#39;&lt;a href=&quot;javascript:getPath(</span><span class="se">\&#39;</span><span class="s1">V</span><span class="si">{0}</span><span class="se">\&#39;</span><span class="s1">)&quot;&gt;</span><span class="si">{0}</span><span class="s1">&lt;/a&gt;&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">pathname</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">write_message</span><span class="p">(</span><span class="n">result</span><span class="o">+</span><span class="s2">&quot;&lt;/p&gt;&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">message</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;X&#39;</span><span class="p">:</span>
+            <span class="k">del</span> <span class="n">session</span><span class="p">[</span><span class="n">userip</span><span class="p">]</span></div>
+
+<div class="viewcode-block" id="SocketHandler.on_close"><a class="viewcode-back" href="../funcs.html#backend.SocketHandler.on_close">[docs]</a>    <span class="k">def</span> <span class="nf">on_close</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Closes WebSocket</span>
+
+<span class="sd">        :return: None</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;WebSocket closed&quot;</span><span class="p">)</span>
+        <span class="n">SocketHandler</span><span class="o">.</span><span class="n">users</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Peter Hague.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>
