@@ -6,10 +6,6 @@ Stoa stands for *Script Tracking for Observational Astronomy* and is a process m
 
 Stoa runs a script multiple times on the different data, and manages the environment that the script is run in. This means that, for instance, if two different measurement sets need to be reprocessed in different versions of CASA, the script will see the appropriate PATH when it is run.
 
-# Applications
-
-The initial application of Stoa is reprocessing of ALMA archive data
-
 # Commands
 
 Simply typing a script name (.py extension is optional) will attempt to run it
