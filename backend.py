@@ -74,10 +74,16 @@ def startBackend():
     # pipe.opts["ActionPath"] = "/".join(re.split("/", scriptPath)[:-1])+"/"
     with dbcon:
         c = dbcon.cursor()
+        c.execute("CREATE TABLE IF NOT EXISTS tblUsers(\
+                   UID INT,\
+                   Username VARCHAR(100))")
         c.execute("SELECT * FROM tblUsers")
         users = c.fetchall()
         for u in users:
             userspace[u[1]] = userstate.userState()
+        if len(users)==0:
+            c.execute("INSERT INTO tblUsers (UID, Username) VALUES (0,'admin')")
+            userspace['admin'] = userstate.userState()
     started = True
     print("Backend started")
 
