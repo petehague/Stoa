@@ -10,10 +10,7 @@ import sqlite3 as sql
 from astropy.time import Time
 from multiprocessing import Process
 import time
-from astropy.io import fits
-from astroquery.ned import Ned
-from astropy import coordinates
-import astropy.units as units
+from yml import yamler
 
 
 profiles = []
@@ -28,8 +25,10 @@ runStatus = "Nothing"
 
 siteroot = "http://127.0.0.1:8888"
 scriptPath = os.path.realpath(__file__)
-#webPath = "/".join(re.split("/", scriptPath)[:-1]) + "/"
 webPath = os.path.split(scriptPath)[0] + "/"
+
+config = yamler(open("stoa.yml", "r"))
+projectname = config['stoa-info']['project-name']
 
 obsfile = "" #TODO: Link this value to config file
 
@@ -94,7 +93,7 @@ def projectInfo():
     :return: HTML output
     """
     # TODO Generalise this, move these links into some kind of task file
-    outstring = '<h2>PROJECT NAME</h2>'
+    outstring = '<h2>{}</h2>'.projectname
     outstring += '<p><a href="javascript:getPath(\'V\')">\
                   Browse all folders</a></p>'
     outstring += '<p><a href="javascript:getPath(\'C\')">\
@@ -414,13 +413,11 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
 
         if message[0] == 'H':
             self.write_message(projectInfo())
-            '''userspace[user].folder = currentFolder = ""
-            self.write_message(folderList(targetFolder+currentFolder,
-                                          1, userip))'''
 
         if message[0] == 'T':
             self.write_message("<p>Results Table</p>") #TODO More link to external file
 
+        #Go back up a level in the file system
         if message[0] == 'B':
             if len(re.findall("/", currentFolder)) > 0:
                 clip = len(re.split("/", currentFolder)[-2])+1
@@ -429,6 +426,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                 self.write_message(folderList(targetFolder+currentFolder,
                                               -1, userip))
 
+        #View a specified subfolder of the current folder
         if message[0] == 'V':
             currentFolder += re.split("/", message)[-1]+"/"
             if len(message) == 1:
@@ -438,6 +436,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             self.write_message(folderList(targetFolder+currentFolder,
                                           1, userip))
 
+        #View a specified folder
         if message[0] == 'W':
             currentFolder = message[1:]+"/"
             print(currentFolder)
@@ -445,12 +444,15 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             self.write_message(folderList(targetFolder+currentFolder,
                                           1, userip))
 
+        #Flag a target
         if message[0] == 'F':
             pipe.doFlag(message[1:])
 
+        #Unflag a target
         if message[0] == 'U':
             pipe.doUnflag(message[1:])
 
+        #Display the action list
         if message[0] == 'A' or message[0] == 'a':
             if message[0] == 'a':
                 flagToggle = "<p><a href=\"javascript:getPath('A')\">Run all</a><br />Run flagged</p>"
@@ -468,6 +470,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                                 {1}</a><br />'.format(runtype,command.strip())
             self.write_message("#"+monitor+flagToggle+commandtext)
 
+        #Run an action
         if message[0] == 'R' or message[0] == 'f':
             monitor = "<div id=monitor></div>"
             self.write_message("#"+monitor+"Processing command "+message[1:]+"...<br />"+stopCommand)
@@ -481,11 +484,13 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             else:
                 self.write_message("#"+monitor+"Action already in progress<br />"+stopCommand)
 
+        #Terminate an action
         if message[0] == 'r':
             userspace[user].proc.terminate()
             self.write_message("#Action terminated<br />"+stopCommand)
 
 
+        #Display a fits image
         if message[0] == 'D':
             fileReq = message[1:]
             if (len(re.findall(".fits", fileReq)) > 0):
@@ -493,7 +498,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                 print(rfilename)
                 # TODO Generic imaging code here
 
-
+        #Edit a control file
         if message[0] == 'Y':
             editor = "<p><a href=\"javascript:getPath('{}')\">Reset</a><br />".format(message)
             editor += "<a href=\"javascript:commitFile('{}')\">Commit</a></p>".format(message)
@@ -504,6 +509,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             editor += '</textarea>'
             self.write_message(editor)
 
+        #Concatenate data from runs
         if message[0] == 'C':
             os.chdir(targetFolder)
             # This needs to be taken out of the code and generalised!
@@ -517,6 +523,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             os.system("rm -rf s_results.fits")
             self.write_message(projectInfo())
 
+        #Query the run log
         if message[0] == 'Q':
             result = "<p>"
             #pathlist = pipe.doQuery(message[1:])
@@ -526,10 +533,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                     result += '<a href="javascript:getPath(\'W{0}\')">{1}</a><br/>'.format(pathname[2:], trimPath(pathname[2:]))
             self.write_message(result+"</p>")
 
-        if message[0] == 'E':
-            console = pipe.doReport(message[1:])
-            self.write_message("+<div id='conback'><p class='console'>{}</p></div".format(console))
-
+        #Display a results table
         if message[0] == 't':
             if message[1]!="p":
                 toggle = '<a href="javascript:getPath(\'tp\')">Reprocess</a><br />'
@@ -540,6 +544,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             else:
                 self.write_message("<p>No observation file found</p>")
 
+        #Control file editing console
         if message[0] == 'S':
             result = "<a href=\"javascript:getPath('Ystoa.yml')\">Edit master file</a><br />"
             commandlist = pipe.doActlist("")
@@ -550,6 +555,8 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                         open(rootname,"a").close()
                     result+="<a href=\"javascript:getPath('Y{}')\">Edit {} default file</a><br />".format(rootname, command)
             self.write_message(result)
+
+        #Logout
         if message[0] == 'X':
             del session[userip]
 

@@ -1,2 +1,4 @@
 stoa-info:
-  version: 0.8
+  project-name: Example Project
+  port: 9000
+  workspace: example
