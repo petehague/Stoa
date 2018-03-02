@@ -93,7 +93,7 @@ def projectInfo():
     :return: HTML output
     """
     # TODO Generalise this, move these links into some kind of task file
-    outstring = '<h2>{}</h2>'.projectname
+    outstring = '<h2>{}</h2>'.format(projectname)
     outstring += '<p><a href="javascript:getPath(\'V\')">\
                   Browse all folders</a></p>'
     outstring += '<p><a href="javascript:getPath(\'C\')">\
