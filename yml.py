@@ -15,6 +15,8 @@ def yamler(text):
         tokens = re.split(":", line.strip()) + ['','']
         header = tokens[0]
         ydict[tokens[0]] = tokens[1].strip()
+    if len(subtext)>0:
+        ydict[header] = yamler(subtext)
     ydict.pop('',None)
     return ydict
            

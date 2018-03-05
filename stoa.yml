@@ -2,3 +2,6 @@ stoa-info:
   project-name: Example Project
   port: 9000
   workspace: example
+  filehandler:
+    pattern: *.txt
+    script: example/display.py

@@ -11,6 +11,8 @@ from astropy.time import Time
 from multiprocessing import Process
 import time
 from yml import yamler
+from imp import load_source
+from fnmatch import fnmatch
 
 
 profiles = []
@@ -29,6 +31,11 @@ webPath = os.path.split(scriptPath)[0] + "/"
 
 config = yamler(open("stoa.yml", "r"))
 projectname = config['stoa-info']['project-name']
+
+handlerpath = config['stoa-info']['filehandler']['script']
+handlerpattern = config['stoa-info']['filehandler']['pattern']
+handler_name, fext = os.path.splitext(os.path.split(handlerpath)[-1])
+filehandler = load_source(handler_name,handlerpath)
 
 obsfile = "" #TODO: Link this value to config file
 
@@ -245,7 +252,7 @@ def folderList(path, direction, userip):
     flaglist = makeFlagList()
     filelist = glob.glob(path+"*")
     filelist.sort()
-    if len(filelist) == 1:
+    if len(filelist) == 1 and os.path.isdir(filelist[0]):
         if direction < 0:
             clip = len(re.split("/", currentFolder)[-2])+1
             currentFolder = currentFolder[:-clip]
@@ -254,7 +261,7 @@ def folderList(path, direction, userip):
         userspace[user].folder = currentFolder
         return folderList(targetFolder+currentFolder, direction, userip)
     if path+"product.xml" in filelist:
-        filelist = xmlListing(path)
+        filelist = xmlListing(path) #Switch over to yml and generalise
     output = '<ul class="filelist">'
     for filename in filelist:
         shortfile = re.split("/", filename)[-1]
@@ -493,10 +500,9 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
         #Display a fits image
         if message[0] == 'D':
             fileReq = message[1:]
-            if (len(re.findall(".fits", fileReq)) > 0):
+            if fnmatch(fileReq,handlerpattern):
                 self.write_message("+Loading image...")
-                print(rfilename)
-                # TODO Generic imaging code here
+                self.write_message(filehandler.stoa(targetFolder+fileReq))
 
         #Edit a control file
         if message[0] == 'Y':
