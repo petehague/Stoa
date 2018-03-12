@@ -9,8 +9,8 @@ RUN pip install astropy
 RUN pip install cwltool
 RUN pip install tornado
 
-EXPOSE 9000
+EXPOSE 80
 
 ENV NAME Stoa container
 
-CMD ["python", "webhost.py", "../"]
+CMD ["python", "webhost.py example 80"]
