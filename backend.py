@@ -106,7 +106,7 @@ def projectInfo():
     outstring += '<p><a href="javascript:getPath(\'C\')">\
                   Create new results table</a></p>'
 
-    outstring += '<p><a href="javascript:getPath(\'ta\')">Veron list</a></p>'
+    #outstring += '<p><a href="javascript:getPath(\'ta\')">External list</a></p>'
 
     outstring += '<p>'
     for filename in glob.glob(webPath+"usercache/*results*"):
