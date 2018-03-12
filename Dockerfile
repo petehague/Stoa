@@ -13,4 +13,4 @@ EXPOSE 80
 
 ENV NAME Stoa container
 
-CMD ["python", "webhost.py example 80"]
+CMD ["python","webhost.py","example","80"]
