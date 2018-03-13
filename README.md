@@ -7,8 +7,9 @@ Stoa runs a script multiple times on the different data, and manages the environ
 
 A Dockerfile is included which should allow you get started quickly. Make sure you have Docker installed and type
 
-docker build -t stoa .
-docker run -p 9000:80 stoa
+`docker build -t stoa .`
+
+`docker run -p 9000:80 stoa`
 
 and then direct your broswer to localhost:9000 to see the interface.
 
