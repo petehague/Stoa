@@ -5,7 +5,7 @@ Stoa runs a script multiple times on the different data, and manages the environ
 
 # How to Use
 
-A Dockerfile is included which should allow you get started quickly. Make sure you have Docker installed and type
+A Dockerfile is included which should allow you get started quickly. Make sure you have the repository downloaded, Docker installed and are working in the Stoa folder, and type
 
 `docker build -t stoa .`
 
