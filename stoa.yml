@@ -5,3 +5,6 @@ stoa-info:
   filehandler:
     pattern: *.txt
     script: example/display.py
+  reftable:
+    name: VO Table
+    coords: example/coords.txt

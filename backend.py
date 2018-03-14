@@ -13,6 +13,10 @@ import time
 from yml import yamler
 from imp import load_source
 from fnmatch import fnmatch
+from astropy.coordinates import SkyCoord
+from astroquery.vo_conesearch import ConeSearch
+from astroquery.vo_conesearch.exceptions import VOSError
+from astropy.table import Table
 
 
 profiles = []
@@ -36,6 +40,10 @@ handlerpath = config['stoa-info']['filehandler']['script']
 handlerpattern = config['stoa-info']['filehandler']['pattern']
 handler_name, fext = os.path.splitext(os.path.split(handlerpath)[-1])
 filehandler = load_source(handler_name,handlerpath)
+
+reftables = {}
+if 'reftable' in config['stoa-info']:
+    reftables[config['stoa-info']['reftable']['name']]=config['stoa-info']['reftable']['coords']
 
 obsfile = "" #TODO: Link this value to config file
 
@@ -107,6 +115,8 @@ def projectInfo():
                   Create new results table</a></p>'
 
     #outstring += '<p><a href="javascript:getPath(\'ta\')">External list</a></p>'
+    for ref in reftables:
+        outstring += '<p><a href="javascript:getPath(\'tf{0}\')">{0}</a></p>'.format(ref)
 
     outstring += '<p>'
     for filename in glob.glob(webPath+"usercache/*results*"):
@@ -517,7 +527,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
 
         #Concatenate data from runs
         if message[0] == 'C':
-            os.chdir(targetFolder)
+            '''os.chdir(targetFolder)
             # This needs to be taken out of the code and generalised!
             os.system(pipe.scriptFolder+"/concat.py "+siteroot)
             t = Time(Time.now())
@@ -526,7 +536,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             os.system("cp a_results.fits {}/usercache/a_results_{}.fits".format(webPath, timestamp))
             os.system("rm -rf a_results.fits")
             os.system("cp s_results.fits {}/usercache/s_results_{}.fits".format(webPath, timestamp))
-            os.system("rm -rf s_results.fits")
+            os.system("rm -rf s_results.fits")'''
             self.write_message(projectInfo())
 
         #Query the run log
@@ -541,14 +551,20 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
 
         #Display a results table
         if message[0] == 't':
+            if message[1]=="f":
+                coords = open(reftables[message[2:]],"r")
+                for line in coords:
+                    pos = SkyCoord(line, unit=("deg", "deg"))
+                    try:
+                        sources = ConeSearch.query_region(pos, '0.1 deg')
+                        sources = sources.to_table() #Its shocking I have to do this!
+                    except VOSError:
+                        sources = Table(names=['objID', 'ra', 'dec'])
+                    self.write_message(htmlify(sources,collist=['objID', 'ra' ,'dec']))
             if message[1]!="p":
                 toggle = '<a href="javascript:getPath(\'tp\')">Reprocess</a><br />'
             else:
                 toggle = ""
-            if os.path.exists(obsfile):
-                self.write_message("<p>Add table here</p>") #TODO: Refer to external file here
-            else:
-                self.write_message("<p>No observation file found</p>")
 
         #Control file editing console
         if message[0] == 'S':

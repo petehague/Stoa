@@ -6,6 +6,7 @@ ADD . /stoacont
 
 RUN pip install numpy
 RUN pip install astropy
+RUN pip install astroquery
 RUN pip install cwltool
 RUN pip install tornado
 
