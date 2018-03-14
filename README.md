@@ -11,9 +11,11 @@ A Dockerfile is included which should allow you get started quickly. Make sure y
 
 `docker run -p 9000:80 stoa`
 
-and then direct your broswer to localhost:9000 to see the interface.
+and then direct your broswer to localhost:9000 to see the web interface. The default username is 'admin'
 
-# Commands
+The behaviour of Stoa is controlled through the file `stoa.yml` - this describes the targets iterated over, how to connect to external databases, and so on.
+
+# Command Line Interface
 
 Simply typing a script name (.py extension is optional) will attempt to run it
 
@@ -29,7 +31,7 @@ Simply typing a script name (.py extension is optional) will attempt to run it
 * set <option> - Will change the value of the specified option
 * help - Lists commands and scripts available
 
-# Script construction
+# Script Construction
 
 In order to be used by Stoa, a script needs to have `# +` at some point in the file on a single line.
 This character combination tells Stoa a command is meant for it. Other commands include
