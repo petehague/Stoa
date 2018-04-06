@@ -119,6 +119,7 @@ def projectInfo():
         outstring += '<p><a href="javascript:getPath(\'tf{0}\')">{0}</a></p>'.format(ref)
 
     outstring += '<p>'
+    outstring += '<a href="javascript:getPath(\'TTestTable?0\')">Example Table</a><br />'
     for filename in glob.glob(webPath+"usercache/*results*"):
         outstring += '<a href="javascript:getPath(\'T{0}\')">{0}</a><br />'.format(filename)
     outstring += '</p>'
@@ -432,7 +433,19 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             self.write_message(projectInfo())
 
         if message[0] == 'T':
-            self.write_message("<p>Results Table</p>") #TODO More link to external file
+            tokens = re.split("\?",message[1:])
+            tableName = tokens[0]
+            if len(tokens>1):
+                tableRow = tokens[1]
+            else:
+                tableRow = 0
+            bottomSlice = "<table>"
+            for index in range(tableRow-1,tableRow+1):
+                bottomSlice += "<tr>" + (["<td></td>"]*5).join() + "</tr>"
+            bottomSlice += "</table>"
+            self.write_message( "*<p>{}</p>{}<br />".format(tableName,bottomSlice))
+
+
 
         #Go back up a level in the file system
         if message[0] == 'B':
