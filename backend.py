@@ -74,6 +74,7 @@ def htmlify(tab, collist=[]):
     result += "</table>"
     return result
 
+
 def startBackend():
     """
     Initialises the web database (distinct from the pipeline one) and
@@ -101,6 +102,7 @@ def startBackend():
     started = True
     print("Backend started")
 
+
 def projectInfo():
     """
     Produces the main page containing information about the current project
@@ -124,6 +126,7 @@ def projectInfo():
         outstring += '<a href="javascript:getPath(\'T{0}\')">{0}</a><br />'.format(filename)
     outstring += '</p>'
     return outstring
+
 
 def target():
     """
@@ -246,6 +249,7 @@ def trimPath(pathname):
         else:
             trimmedpath += "/..."
     return trimmedpath
+
 
 def folderList(path, direction, userip):
     """

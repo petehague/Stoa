@@ -16,7 +16,7 @@ import time
 import sys
 # import fnmatch
 import procdb
-# import subprocess
+import subprocess # Not Python 2 compatible!
 from yml import yamler, writeyaml
 import action
 from cwltool.errors import WorkflowException
@@ -80,7 +80,7 @@ def makeyml(pathname, command):
 
     writeyaml(globalDict, pathname+"/run.yml")
 
-def padScript(cmdFile):
+def padScript(cmdFile, pathname):
     scriptFile = open("__tempscript.py", "w")
     scriptFile.write("#!/usr/bin/env python\n")
     scriptFile.write("import sys\n")
@@ -88,17 +88,17 @@ def padScript(cmdFile):
     scriptFile.write("stoaPath = '{0}'\n\n".format(pathname))
     scriptFile.write("actionPath = '{0}'\n\n".format(opts["ActionPath"]))
 
-    commandFile = open(cmdfile,"r")
+    commandFile = open(cmdFile,"r")
     for line in commandFile:
         scriptFile.write(line)
     scriptFile.close()
     commandFile.close()
 
-def ExecCWL(cmdfile, pathname):
+def ExecCWL(cmdFile, pathname):
     result = {}
     success = 0
     try:
-        result = action.manager(cmdfile, "run.yml", ".pipelog.txt")
+        result = action.manager(cmdFile, "run.yml", ".pipelog.txt")
     except WorkflowException as werr:
         success = 1
         log = open(".pipelog.txt","w")
@@ -107,19 +107,21 @@ def ExecCWL(cmdfile, pathname):
     writeyaml(result, "stoa_out.yml")
     return success
 
-def padExec(cmdfile, pathname):
+def padExec(cmdFile, pathname):
     """
     Creates a modified copy of the target script, runs it, then deletes the copy
 
     :param cmdfile: Name of Source script
     :return: Result of execution
     """
-    padScript(cmdFile)
+
+    padScript(cmdFile, pathname)
 
     os.chmod("__tempscript.py", 0o744)
-    # result = subprocess.call("__tempscript.py")
-    result = os.system("./__tempscript.py &> .pipelog.txt")
-    os.remove("__tempscript.py")
+    result = subprocess.call(["python","__tempscript.py"]) #, stdout=".pipelog.txt", stderr=".pipeerr.txt")
+    #result = os.system("./__tempscript.py &> .pipelog.txt")
+    print(result)
+    #os.remove("rm __tempscript.py")
     return result
 
 
