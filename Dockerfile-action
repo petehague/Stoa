@@ -5,17 +5,13 @@ WORKDIR /stoacont
 ADD . ./
 
 RUN pip install --upgrade pip
-RUN pip install numpy
-RUN pip install astropy
-RUN pip install astroquery
 RUN pip install cwltool
-RUN pip install tornado
 RUN pip install grpcio-tools
 
 RUN python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. ./action.proto
 
-EXPOSE 80
+EXPOSE 7000
 
 ENV NAME Stoa container
 
-CMD ["python","webhost.py","example","80"]
+CMD ["python","action.py"]

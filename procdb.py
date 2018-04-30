@@ -181,7 +181,7 @@ def paths(target):
         paths = []
         for row in c:
             paths.append(row['pathName'])
-
+    print(paths)
     return paths
 
 

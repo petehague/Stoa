@@ -8,6 +8,11 @@ import sys
 import socket
 import backend
 
+import glob
+
+print(glob.glob("*"))
+print(glob.glob("/stoacont/example/task1/product/*"))
+
 if len(sys.argv) > 2:
     portnum = int(sys.argv[2])
 else:

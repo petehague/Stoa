@@ -16,10 +16,12 @@ import time
 import sys
 # import fnmatch
 import procdb
-# import subprocess
+import subprocess # Not Python 2 compatible!
 from yml import yamler, writeyaml
-import action
-from cwltool.errors import WorkflowException
+
+import grpc
+import action_pb2
+import action_pb2_grpc
 
 # Python 2 compatibility
 if sys.version_info[0] > 2:
@@ -42,6 +44,26 @@ if os.path.exists(".pipeopts.txt"):
         opts[key] = value
     optfile.close()
 
+# Connection to action server
+if "ActionHost" in opts:
+    acthost = opts["ActionHost"]
+else:
+    acthost = "action"
+actConnect = grpc.insecure_channel('{}:7000'.format(acthost))
+actions = action_pb2_grpc.ActionStub(actConnect)
+
+#Wrapper class
+class Actions(object):
+    @staticmethod
+    def ExecCWL(cmdFile, pathname):
+        request = action_pb2.ExecCWLReq(cmdFile = cmdFile,
+                                        pathname = pathname)
+        return actions.ExecCWL(request).result
+    @staticmethod
+    def makeyml(pathname, command):
+        request = action_pb2.makeymlReq(pathname=pathname, command=command)
+        actions.makeyml(request)
+
 print("Pipeline started using actions at {}".format(opts["ActionPath"]))
 
 prefixList = {}
@@ -50,37 +72,7 @@ metacmd = {}
 databasepath = ""
 queryID = 0
 
-def makeyml(pathname, command):
-    """
-    Generates a yml file to guide execution, based on the specific->general hierarchy
-    Run specific parameters override batch specific parameters override global parameters
-
-    :param pathname: The path of the project of interest
-    """
-
-    if ".cwl" in command:
-        cmdyml = (re.split(".cwl", command)[0]).strip() + ".yml"
-        cmdDict = yamler(open(opts["ActionPath"]+"/"+cmdyml, "r"))
-    else:
-        cmdDict = {}
-    globalDict = yamler(open(scriptFolder+"/stoa.yml","r"))
-    if not os.path.exists("stoa.yml"):
-        open("stoa.yml","a").close()
-    batchDict = yamler(open("stoa.yml","r"))
-    if not os.path.exists(pathname+"/stoa.yml"):
-        open(pathname+"/stoa.yml","a").close()
-    specDict = yamler(open(pathname+"/stoa.yml","r"))
-
-    for key in cmdDict:
-        globalDict[key] = cmdDict[key]
-    for key in batchDict:
-        globalDict[key] = batchDict[key]
-    for key in specDict:
-        globalDict[key] = specDict[key]
-
-    writeyaml(globalDict, pathname+"/run.yml")
-
-def padScript(cmdFile):
+def padScript(cmdFile, pathname):
     scriptFile = open("__tempscript.py", "w")
     scriptFile.write("#!/usr/bin/env python\n")
     scriptFile.write("import sys\n")
@@ -88,38 +80,29 @@ def padScript(cmdFile):
     scriptFile.write("stoaPath = '{0}'\n\n".format(pathname))
     scriptFile.write("actionPath = '{0}'\n\n".format(opts["ActionPath"]))
 
-    commandFile = open(cmdfile,"r")
+    commandFile = open(cmdFile,"r")
     for line in commandFile:
         scriptFile.write(line)
     scriptFile.close()
     commandFile.close()
 
-def ExecCWL(cmdfile, pathname):
-    result = {}
-    success = 0
-    try:
-        result = action.manager(cmdfile, "run.yml", ".pipelog.txt")
-    except WorkflowException as werr:
-        success = 1
-        log = open(".pipelog.txt","w")
-        log.write("Workflow Exception: {}\n".format(werr.args))
-        log.close()
-    writeyaml(result, "stoa_out.yml")
-    return success
-
-def padExec(cmdfile, pathname):
+def padExec(cmdFile, pathname):
     """
     Creates a modified copy of the target script, runs it, then deletes the copy
 
     :param cmdfile: Name of Source script
     :return: Result of execution
     """
-    padScript(cmdFile)
+
+    padScript(cmdFile, pathname)
 
     os.chmod("__tempscript.py", 0o744)
-    # result = subprocess.call("__tempscript.py")
-    result = os.system("./__tempscript.py &> .pipelog.txt")
-    os.remove("__tempscript.py")
+    if sys.version_info[0] > 2:
+        result = subprocess.call(["python","__tempscript.py"]) #, stdout=".pipelog.txt", stderr=".pipeerr.txt")
+    else:
+        result = os.system("./__tempscript.py &> .pipelog.txt")
+    print(result)
+    #os.remove("rm __tempscript.py")
     return result
 
 
@@ -310,13 +293,13 @@ def doActlist(command):
             if key is not "NONE":
                 print("    "+key)
         print("Actions:")
-    actions = []
+    actionlist = []
     scripts = glob.glob(opts["ActionPath"]+"*.py")
     scripts.extend(glob.glob(opts["ActionPath"]+"*.cwl"))
     for script in scripts:
         if len(parseAction(script)) > 0:
-            actions.append("    "+re.split("/", script)[-1])
-    return actions
+            actionlist.append("    "+re.split("/", script)[-1])
+    return actionlist
 
 
 # Actions alternative to running an external program
@@ -360,7 +343,7 @@ metacmd = {'list': runDisplay,
 commandPath = os.path.dirname(os.path.abspath(__file__))
 
 
-def commandgen(command, pathname):
+def commandgen(command, pathname, noproc=False):
     """
     Main command processing function. Parses file system to find targets
     and then invokes the specific action script. Runs as a generator.
@@ -378,6 +361,12 @@ def commandgen(command, pathname):
 
     paths = prefixList[prefix](command)
     if len(paths) is 0:
+        return
+
+    # Option for use with web interface
+    if noproc:
+        for path in paths:
+            yield path
         return
 
     if prefix in metacmd:
@@ -413,24 +402,25 @@ def commandgen(command, pathname):
     for path in paths:
         yield path
         sys.stdout.flush() # Does this do anything now?
-        makeyml(path, command)
-        os.chdir(path)
+        Actions.makeyml(pathname+"/"+path, command)
+        #os.chdir(path)
         starttime = time.strftime("%H:%M:%S")
         startdate = time.strftime("%y/%m/%d")
         duration = time.time()
         if ".cwl" in cmdFilename:
-            result = ExecCWL(cmdFilename, path)
+            result = Actions.ExecCWL(cmdFilename, pathname+"/"+path)
         else:
             result = padExec(cmdFilename, path)
         # result = os.system(cmdFilename+" &> .pipelog.txt")
         duration = time.time() - duration
+        print(result)
         pid = procdb.write(command, checksum.hexdigest(), path,
                      startdate, starttime, duration, result)
         #procdb.scanoutput(".pipelog.txt", pid)
         # os.remove(".pipelog.txt")
 
-        for x in re.findall("\/", path):
-            os.chdir("..")
+        #for x in re.findall("\/", path):
+        #    os.chdir("..")
 
         if result > 0:
             yield " \033[1m\033[91mFAILED\033[0m\033[0m\n"
