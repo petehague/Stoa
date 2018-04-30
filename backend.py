@@ -47,6 +47,17 @@ if 'reftable' in config['stoa-info']:
 
 obsfile = "" #TODO: Link this value to config file
 
+dytables = {}
+if 'table' in config['stoa-info']:
+    tablelist = config['stoa-info']['table']
+    if type(tablelist)!=list:
+        dtyables[tablelist['name']] = tablelist['file']
+    else:
+        for tab in tablelist:
+            dytables[tab['name']] = tab['file']
+
+print(dytables) 
+
 stopCommand = "<a href=\"javascript:getPath('r')\">Click here to stop batch</a>"
 
 consoleSize = 20
@@ -107,6 +118,7 @@ def projectInfo():
 
     :return: HTML output
     """
+    global dytables
     # TODO Generalise this, move these links into some kind of task file
     outstring = '<h2>{}</h2>'.format(projectname)
     outstring += '<p><a href="javascript:getPath(\'V\')">\
@@ -119,9 +131,8 @@ def projectInfo():
         outstring += '<p><a href="javascript:getPath(\'tf{0}\')">{0}</a></p>'.format(ref)
 
     outstring += '<p>'
-    outstring += '<a href="javascript:getPath(\'TTestTable?0\')">Example Table</a><br />'
-    for filename in glob.glob(webPath+"usercache/*results*"):
-        outstring += '<a href="javascript:getPath(\'T{0}\')">{0}</a><br />'.format(filename)
+    for key in dytables:
+        outstring += '<a href="javascript:getPath(\'T{}?0\')">{}</a><br />'.format(dytables[key],key)
     outstring += '</p>'
     return outstring
 
@@ -435,15 +446,16 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
         if message[0] == 'T':
             tokens = re.split("\?",message[1:])
             tableName = tokens[0]
-            if len(tokens>1):
-                tableRow = tokens[1]
+            if len(tokens)>1:
+                tableRow = int(tokens[1])
             else:
                 tableRow = 0
             bottomSlice = "<table>"
             for index in range(tableRow-1,tableRow+1):
-                bottomSlice += "<tr>" + (["<td></td>"]*5).join() + "</tr>"
+                bottomSlice += "<tr>" + ''.join(["<td>A</td>"]*5) + "</tr>"
             bottomSlice += "</table>"
-            self.write_message( "*<p>{}</p>{}<br />".format(tableName,bottomSlice))
+            self.write_message("#{}".format(tableName))
+            self.write_message("*{}".format(bottomSlice))
 
 
 

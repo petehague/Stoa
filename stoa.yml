@@ -8,3 +8,10 @@ stoa-info:
   reftable:
     name: VO Table
     coords: example/coords.txt
+  table:
+    name: Example Table 1
+    file: extable1.txt
+  table: 
+    name: Example Table 2
+    file: extable2.txt
+

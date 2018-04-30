@@ -1,5 +1,16 @@
 import re
 
+def insertnode(ydict, index, value):
+    if len(value)==0:
+        return
+    if index in ydict:
+        if type(ydict[index])==list:
+            ydict[index].append(value)
+        else:
+            ydict[index] = [ydict[index],value]
+    else:
+            ydict[index] = value
+
 def yamler(text):
     subtext = []
     ydict = {}
@@ -14,10 +25,10 @@ def yamler(text):
             subtext = []
         tokens = re.split(":", line.strip()) + ['','']
         header = tokens[0]
-        ydict[tokens[0]] = tokens[1].strip()
+        insertnode(ydict, tokens[0], tokens[1].strip())
     if len(subtext)>0:
-        ydict[header] = yamler(subtext)
-    ydict.pop('',None)
+        insertnode(ydict,header,yamler(subtext))
+    #ydict.pop('',None)
     return ydict
            
 def writeyaml(ydict, filename):
