@@ -18,6 +18,9 @@ from astroquery.vo_conesearch import ConeSearch
 from astroquery.vo_conesearch.exceptions import VOSError
 from astropy.table import Table
 
+import grpc
+import action_pb2
+import action_pb2_grpc
 
 profiles = []
 
@@ -44,6 +47,23 @@ filehandler = load_source(handler_name,handlerpath)
 reftables = {}
 if 'reftable' in config['stoa-info']:
     reftables[config['stoa-info']['reftable']['name']]=config['stoa-info']['reftable']['coords']
+
+# Connection to action server
+if "ActionHost" in config:
+    acthost = config["ActionHost"]
+else:
+    acthost = "action"
+actConnect = grpc.insecure_channel('{}:7000'.format(acthost))
+actions = action_pb2_grpc.ActionStub(actConnect)
+
+class Actions(object):
+    @staticmethod
+    def glob(pathname):
+        filelist = []
+        for item in actions.glob(action_pb2.globReq(pathname=pathname)):
+            filelist.append(item.filename)
+            print(item.filename)
+        return filelist
 
 obsfile = "" #TODO: Link this value to config file
 
@@ -86,7 +106,6 @@ def startBackend():
     if started:
         return
     dbcon = sql.connect('contents.db')
-    # pipe.opts["ActionPath"] = "/".join(re.split("/", scriptPath)[:-1])+"/"
     with dbcon:
         c = dbcon.cursor()
         c.execute("CREATE TABLE IF NOT EXISTS tblUsers(\
@@ -265,7 +284,7 @@ def folderList(path, direction, userip):
     currentFolder = userspace[user].folder
 
     flaglist = makeFlagList()
-    filelist = glob.glob(path+"*")
+    filelist = Actions.glob(path+"*")
     filelist.sort()
     if len(filelist) == 1 and os.path.isdir(filelist[0]):
         if direction < 0:
@@ -340,7 +359,7 @@ def procMonitor(command, targetFolder, user, runtype):
     global userspace
     if runtype=='f':
         command = 'run '+command
-    for report in pipe.commandgen(command, targetFolder):
+    for report in pipe.commandgen(command, targetFolder, noproc=False):
         repstring = "{}".format(prettify(report))
         userspace[user].q.put(repstring)
 

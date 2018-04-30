@@ -1,0 +1,61 @@
+//Protocol file for action.py server
+
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "io.grpc.action";
+option java_outer_classname = "actionProto";
+option objc_class_prefix = "ACT";
+
+package action_prot;
+
+service Action {
+  rpc push(pushReq) returns (pushReply) {}
+  rpc isFree(freeReq) returns (isFreeReply) {}
+  rpc ExecCWL(ExecCWLReq) returns (ExecCWLReply) {}
+  rpc makeyml(makeymlReq) returns (makeymlReply) {}
+  rpc glob(globReq) returns (stream globReply) {}
+}
+
+message globReq {
+  string pathname = 1;
+}
+
+message globReply {
+  string filename = 1;
+}
+
+message makeymlReq {
+  string pathname = 1;
+  string command = 2;
+}
+
+message makeymlReply {
+  string mess = 1;
+}
+
+message ExecCWLReq {
+  string cmdFile = 1;
+  string pathname = 2;
+}
+
+message ExecCWLReply {
+  int32 result = 1;
+};
+
+message freeReq {
+  int32 filler = 1;
+}
+
+message pushReq {
+  string cmdFile = 1;
+  string pathname = 2;
+}
+
+message pushReply {
+  string mess = 1;
+}
+
+message isFreeReply {
+  bool result = 1;
+}
