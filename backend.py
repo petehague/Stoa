@@ -49,8 +49,8 @@ if 'reftable' in config['stoa-info']:
     reftables[config['stoa-info']['reftable']['name']]=config['stoa-info']['reftable']['coords']
 
 # Connection to action server
-if "ActionHost" in config:
-    acthost = config["ActionHost"]
+if "ActionHost" in config['stoa-info']:
+    acthost = config['stoa-info']["ActionHost"].strip()
 else:
     acthost = "action"
 actConnect = grpc.insecure_channel('{}:7000'.format(acthost))
@@ -76,7 +76,7 @@ if 'table' in config['stoa-info']:
         for tab in tablelist:
             dytables[tab['name']] = tab['file']
 
-print(dytables) 
+print(dytables)
 
 stopCommand = "<a href=\"javascript:getPath('r')\">Click here to stop batch</a>"
 

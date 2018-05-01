@@ -2,6 +2,8 @@ stoa-info:
   project-name: Example Project
   port: 9000
   workspace: example
+  ActionHost: action
+  ActionPath: ./actions
   filehandler:
     pattern: *.txt
     script: example/display.py
@@ -11,7 +13,6 @@ stoa-info:
   table:
     name: Example Table 1
     file: extable1.txt
-  table: 
+  table:
     name: Example Table 2
     file: extable2.txt
-

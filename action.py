@@ -12,17 +12,8 @@ import grpc
 import action_pb2
 import action_pb2_grpc
 
-opts = {}
 scriptPath = os.path.realpath(__file__)
-opts["ActionPath"] = "/".join(re.split("/", scriptPath)[:-1]) + "/actions/"
-
-if os.path.exists(".pipeopts.txt"):
-    optfile = open(".pipeopts.txt", "r")
-    for line in optfile:
-        key = re.split(" ", line)[0]
-        value = line[len(key)+1:-1]
-        opts[key] = value
-    optfile.close()
+scriptFolder = "/".join(re.split("/", scriptPath)[:-1]) + "/actions/"
 
 procStack = []
 
@@ -46,6 +37,7 @@ def manager(taskfile, paramfile, outfile):
 def ExecCWL(cmdFile, pathname):
     result = {}
     success = 0
+    cmdFile = scriptFolder + "/" + cmdFile
     try:
         result = manager(cmdFile, pathname+"/run.yml", pathname+"/.pipelog.txt")
     except WorkflowException as werr:
@@ -64,12 +56,9 @@ def makeyml(pathname, command):
     :param pathname: The path of the project of interest
     """
 
-    if ".cwl" in command:
-        cmdyml = (re.split(".cwl", command)[0]).strip() + ".yml"
-        cmdDict = yamler(open(opts["ActionPath"]+"/"+cmdyml, "r"))
-    else:
-        cmdDict = {}
-    globalDict = yamler(open(opts["ActionPath"]+"/stoa.yml","r"))
+    cmdyml = (re.split(".cwl", command)[0]).strip() + ".yml"
+    cmdDict = yamler(open(scriptFolder+"/"+cmdyml, "r"))
+    globalDict = yamler(open(scriptFolder+"/stoa.yml","r"))
     if not os.path.exists("stoa.yml"):
         open("stoa.yml","a").close()
     batchDict = yamler(open("stoa.yml","r"))
@@ -118,8 +107,6 @@ class actionServer(action_pb2_grpc.ActionServicer):
             yield action_pb2.globReply(filename=filename)
 
 if __name__ == "__main__":
-    #r = cwlinvoke("tool.cwl",yml.yamler(open("job.yml")))
-    #print(r)
     serverinst = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
     action_pb2_grpc.add_ActionServicer_to_server(actionServer(), serverinst)
     portnum = serverinst.add_insecure_port('[::]:7000')

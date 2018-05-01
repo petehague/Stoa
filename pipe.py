@@ -16,7 +16,6 @@ import time
 import sys
 # import fnmatch
 import procdb
-import subprocess # Not Python 2 compatible!
 from yml import yamler, writeyaml
 
 import grpc
@@ -30,23 +29,24 @@ if sys.version_info[0] > 2:
 # utils
 
 verbose = False
-opts = {}
-opts["Target"] = "product"
-scriptPath = os.path.realpath(__file__)
-opts["ActionPath"] = "/".join(re.split("/", scriptPath)[:-1]) + "/actions/"
-scriptFolder = opts["ActionPath"]
 
-if os.path.exists(".pipeopts.txt"):
-    optfile = open(".pipeopts.txt", "r")
-    for line in optfile:
-        key = re.split(" ", line)[0]
-        value = line[len(key)+1:-1]
-        opts[key] = value
-    optfile.close()
+config = yamler(open("stoa.yml", "r"))
+
+if "target" in config['stoa-info']:
+    targetFolder = config['stoa-info']['target']
+else:
+    targetFolder = "product"
+
+scriptPath = os.path.realpath(__file__)
+if "scriptPath" in config['stoa-info']:
+    scriptFolder = config['stoa-info']['scriptPath']
+else:
+    scriptFolder = "actions"
+scriptFolder = "/".join(re.split("/", scriptPath)[:-1]) + "/"+scriptFolder+"/"
 
 # Connection to action server
-if "ActionHost" in opts:
-    acthost = opts["ActionHost"]
+if "ActionHost" in config['stoa-info']:
+    acthost = config['stoa-info']["ActionHost"].strip()
 else:
     acthost = "action"
 actConnect = grpc.insecure_channel('{}:7000'.format(acthost))
@@ -64,7 +64,7 @@ class Actions(object):
         request = action_pb2.makeymlReq(pathname=pathname, command=command)
         actions.makeyml(request)
 
-print("Pipeline started using actions at {}".format(opts["ActionPath"]))
+print("Pipeline started using actions at {}".format(scriptFolder))
 
 prefixList = {}
 metacmd = {}
@@ -72,45 +72,14 @@ metacmd = {}
 databasepath = ""
 queryID = 0
 
-def padScript(cmdFile, pathname):
-    scriptFile = open("__tempscript.py", "w")
-    scriptFile.write("#!/usr/bin/env python\n")
-    scriptFile.write("import sys\n")
-    scriptFile.write("sys.path.append('{}')\n\n".format(opts["ActionPath"]))
-    scriptFile.write("stoaPath = '{0}'\n\n".format(pathname))
-    scriptFile.write("actionPath = '{0}'\n\n".format(opts["ActionPath"]))
-
-    commandFile = open(cmdFile,"r")
-    for line in commandFile:
-        scriptFile.write(line)
-    scriptFile.close()
-    commandFile.close()
-
-def padExec(cmdFile, pathname):
-    """
-    Creates a modified copy of the target script, runs it, then deletes the copy
-
-    :param cmdfile: Name of Source script
-    :return: Result of execution
-    """
-
-    padScript(cmdFile, pathname)
-
-    os.chmod("__tempscript.py", 0o744)
-    if sys.version_info[0] > 2:
-        result = subprocess.call(["python","__tempscript.py"]) #, stdout=".pipelog.txt", stderr=".pipeerr.txt")
-    else:
-        result = os.system("./__tempscript.py &> .pipelog.txt")
-    print(result)
-    #os.remove("rm __tempscript.py")
-    return result
-
 
 def doFlag(command):
     return procdb.doFlag(command)
 
+
 def doUnflag(command):
     return procdb.doUnflag(command)
+
 
 def isFlagged(command):
     return procdb.isFlagged(command)
@@ -136,22 +105,10 @@ def parseAction(filename):
     :return: A list of directives
     """
     properties = {}
-    if ".cwl" in filename:
-        properties = {"blankline": ""}
-    try:
-       with open(filename, 'r') as f:
-           for line in f:
-               tokens = re.split(" ", line[:-1])
-               if tokens[0:2] == ["#", "+"]:
-                   if len(tokens) > 2:
-                       if len(tokens) < 3:
-                           properties[tokens[2]] = ""
-                       else:
-                           properties[tokens[2]] = ''.join(tokens[3:])
-                   else:
-                       properties["blankline"] = ""
-    except:
-        properties = {}
+    tree = yamler(filename)
+    if 'stoa' in tree:
+        for item in tree['stoa']:
+            properties[item] = tree['stoa'][item]
     return properties
 
 
@@ -164,8 +121,8 @@ def doDefault(command):
     :return: A list of paths
     """
 
-    target = opts["Target"]
-    cmdFilename = re.split(" ", opts["ActionPath"]+"/"+command)[0]
+    target = targetFolder
+    cmdFilename = re.split(" ", scriptFolder+"/"+command)[0]
     props = parseAction(cmdFilename)
     if 'target' in props:
         target = props['target']
@@ -244,7 +201,7 @@ def doList(command):
     return doRun(command)+doRetry(command)
 
 
-def doOptlist(command):
+def doOptlist(command, list={}, indent=""):
     """
     Returns all the program options
 
@@ -252,8 +209,13 @@ def doOptlist(command):
     :return: List of options
     """
     path = []
-    for key in opts:
-        path.append("{}={}".format(key, opts[key]))
+    if list=={}:
+        list = config
+    for key in list:
+        if type(key) is dict:
+            path.append(indent+"{}: ".format(key))
+            path.extend(doOptlist(command, list=list[key], indent=" "+indent))
+        path.append(indent+"{}: {}".format(key, config['stoa-info'][key]))
     return path
 
 
@@ -264,15 +226,15 @@ def doOptset(command):
     :param command: string formatted as "<option> <new value>"
     :return: string representation of the new option
     """
-    global opts
+    global config
     tokens = re.split(" ", command)
     if len(tokens) < 2:
         print("set <option> <value>")
         return []
     option = tokens[0]
     value = tokens[1]
-    if option in opts:
-        opts[option] = value
+    if option in config['stoa-info']:
+        config['stoa-info'][option] = value
         return ["{}={}".format(option, value)]
     else:
         print("Option {} not found".format(option))
@@ -286,7 +248,7 @@ def doActlist(command):
     :param command: Not used
     :return: List of scripts
     """
-    print("Action path is {}".format(opts["ActionPath"]))
+    print("Action path is {}".format(scriptFolder))
     if verbose:
         print("Commands:")
         for key in prefixList:
@@ -294,11 +256,9 @@ def doActlist(command):
                 print("    "+key)
         print("Actions:")
     actionlist = []
-    scripts = glob.glob(opts["ActionPath"]+"*.py")
-    scripts.extend(glob.glob(opts["ActionPath"]+"*.cwl"))
+    scripts = glob.glob(scriptFolder+"*.cwl")
     for script in scripts:
-        if len(parseAction(script)) > 0:
-            actionlist.append("    "+re.split("/", script)[-1])
+        actionlist.append(re.split("/", script)[-1])
     return actionlist
 
 
@@ -374,16 +334,11 @@ def commandgen(command, pathname, noproc=False):
             metacmd[prefix](path)
         return
 
-    cmdFilename = re.split(" ", opts["ActionPath"]+"/"+command)[0]
+    cmdFilename = re.split(" ", scriptFolder+"/"+command)[0]
 
-    if ".py" not in cmdFilename and ".cwl" not in cmdFilename:
-        cmdFilename = cmdFilename+".py"
-        command = command.replace(" ", ".py ", 1)
-        if ".py" not in command and ".cwl" not in command:
-            command += ".py"
-
-    if "touch" in command:
-        cmdFilename = scriptFolder+command
+    if ".cwl" not in cmdFilename:
+        cmdFilename = cmdFilename+".cwl"
+        command = command.replace(" ", ".cwl ", 1)
 
     if not os.path.exists(cmdFilename):
         print("No command or action "+command)
@@ -407,10 +362,7 @@ def commandgen(command, pathname, noproc=False):
         starttime = time.strftime("%H:%M:%S")
         startdate = time.strftime("%y/%m/%d")
         duration = time.time()
-        if ".cwl" in cmdFilename:
-            result = Actions.ExecCWL(cmdFilename, pathname+"/"+path)
-        else:
-            result = padExec(cmdFilename, path)
+        result = Actions.ExecCWL(command, pathname+"/"+path)
         # result = os.system(cmdFilename+" &> .pipelog.txt")
         duration = time.time() - duration
         print(result)
@@ -466,7 +418,4 @@ if __name__ == "__main__":
         procCommand(command, ".")
 
     print("Quiting...")
-    optfile = open(".pipeopts.txt", "w")
-    for key in opts:
-        optfile.write("{} {}\n".format(key, opts[key]))
-    optfile.close()
+    writeyaml(config, "stoa.yml")
