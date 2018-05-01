@@ -98,6 +98,7 @@ class actionServer(action_pb2_grpc.ActionServicer):
         return action_pb2.makeymlReply(mess="OK")
 
     def ExecCWL(self, request, context):
+        print(request.cmdFile)
         return action_pb2.ExecCWLReply(result=ExecCWL(request.cmdFile, request.pathname))
 
     def push(self, request, context):
@@ -111,6 +112,7 @@ class actionServer(action_pb2_grpc.ActionServicer):
             return action_pb2.isFreeReply(result=False)
 
     def glob(self, request, context):
+        print(request.pathname)
         list = myGlob(request.pathname)
         for filename in list:
             yield action_pb2.globReply(filename=filename)
@@ -127,4 +129,4 @@ if __name__ == "__main__":
         while True:
             clearStack()
     except KeyboardInterrupt:
-        server.stop(0)
+        serverinst.stop(0)
