@@ -4,6 +4,7 @@ import cwltool.factory
 from yml import yamler, writeyaml
 import re
 import os
+import sys
 import glob
 from cwltool.errors import WorkflowException
 
@@ -12,16 +13,19 @@ import grpc
 import action_pb2
 import action_pb2_grpc
 
+import userstate_interface as userstate
+
+config = yamler(open("stoa.yml", "r"))
+targetFolder = config['stoa-info']['workspace']
+
 scriptPath = os.path.realpath(__file__)
 scriptFolder = "/".join(re.split("/", scriptPath)[:-1]) + "/actions/"
 
-procStack = []
 
-def clearStack():
-    if procStack==[]:
-        return 1
-    procStack.pop(1)
-    print(">>")
+procStack = {}
+#for name in userstate.getList():
+#    procstack[name] = []
+
 
 def cwlinvoke(taskfile, params):
     taskfac = cwltool.factory.Factory()
@@ -75,6 +79,16 @@ def makeyml(pathname, command):
 
     writeyaml(globalDict, pathname+"/run.yml")
 
+def clearStack():
+    global procStack
+    for usertoken in procStack:
+        command = procStack[usertoken][0][0]
+        pathname = procStack[usertoken][0][1]
+        procStack[usertoken].pop(0)
+        print(">> "+usertoken+" : "+command+" : "+pathname)
+        makeyml(pathname, command)
+        print("   Result: "+ExecCWL(command, pathname))
+
 def myGlob(pathname):
     return glob.glob(pathname)
 
@@ -91,11 +105,15 @@ class actionServer(action_pb2_grpc.ActionServicer):
         return action_pb2.ExecCWLReply(result=ExecCWL(request.cmdFile, request.pathname))
 
     def push(self, request, context):
-        procStack.append([request.cmdFile, request.pathname])
+        if request.usertoken not in procStack:
+            procStack[request.usertoken] = []
+        procStack[request.usertoken].append([request.cmdFile, request.pathname])
         return action_pb2.pushReply(mess="OK")
 
     def isFree(self, request, context):
-        if procStack==[]:
+        if request.usertoken not in procStack:
+            procStack[request.usertoken] = []
+        if procStack[request.usertoken]==[]:
             return action_pb2.isFreeReply(result=True)
         else:
             return action_pb2.isFreeReply(result=False)
@@ -115,5 +133,6 @@ if __name__ == "__main__":
     try:
         while True:
             clearStack()
+            sys.stdout.flush()
     except KeyboardInterrupt:
         serverinst.stop(0)

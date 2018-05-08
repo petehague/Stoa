@@ -56,11 +56,13 @@ actions = action_pb2_grpc.ActionStub(actConnect)
 class Actions(object):
     @staticmethod
     def ExecCWL(cmdFile, pathname):
+        print(cmdFile, pathname)
         request = action_pb2.ExecCWLReq(cmdFile = cmdFile,
                                         pathname = pathname)
         return actions.ExecCWL(request).result
     @staticmethod
     def makeyml(pathname, command):
+        print(pathname, command)
         request = action_pb2.makeymlReq(pathname=pathname, command=command)
         actions.makeyml(request)
 
@@ -312,7 +314,6 @@ def commandgen(command, pathname, noproc=False):
     :param pathname: The root path to start the search from
     :return: Yields text reports of success/failure
     """
-    os.chdir(pathname)
     prefix = re.split(" ", command)[0]
     if prefix in prefixList:
         command = command[len(prefix):].strip()
@@ -328,6 +329,8 @@ def commandgen(command, pathname, noproc=False):
         for path in paths:
             yield path
         return
+
+    os.chdir(pathname)
 
     if prefix in metacmd:
         for path in paths:

@@ -13,6 +13,7 @@ RUN pip install tornado
 RUN pip install grpcio-tools
 
 RUN python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. ./action.proto
+RUN python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. ./userstate.proto
 
 EXPOSE 80
 

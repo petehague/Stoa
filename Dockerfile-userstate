@@ -1,0 +1,16 @@
+FROM python:3.6.5-stretch
+
+WORKDIR /stoacont
+
+ADD . ./
+
+RUN pip install --upgrade pip
+RUN pip install grpcio-tools
+
+RUN python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. ./userstate.proto
+
+EXPOSE 6999
+
+ENV NAME Stoa User Server
+
+CMD ["python","userstate.py"]

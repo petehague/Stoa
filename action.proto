@@ -11,7 +11,7 @@ package action_prot;
 
 service Action {
   rpc push(pushReq) returns (pushReply) {}
-  rpc isFree(freeReq) returns (isFreeReply) {}
+  rpc isFree(isFreeReq) returns (isFreeReply) {}
   rpc ExecCWL(ExecCWLReq) returns (ExecCWLReply) {}
   rpc makeyml(makeymlReq) returns (makeymlReply) {}
   rpc glob(globReq) returns (stream globReply) {}
@@ -43,13 +43,14 @@ message ExecCWLReply {
   int32 result = 1;
 };
 
-message freeReq {
-  int32 filler = 1;
+message isFreeReq {
+  string usertoken = 1;
 }
 
 message pushReq {
   string cmdFile = 1;
   string pathname = 2;
+  int32 usertoken = 3;
 }
 
 message pushReply {

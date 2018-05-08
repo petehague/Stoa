@@ -2,6 +2,7 @@
 import tornado.websocket
 import re
 import os
+import sys
 import glob
 import pipe
 import xml.etree.ElementTree as et
@@ -21,6 +22,8 @@ from astropy.table import Table
 import grpc
 import action_pb2
 import action_pb2_grpc
+
+import userstate_interface as userstate
 
 profiles = []
 
@@ -48,7 +51,7 @@ reftables = {}
 if 'reftable' in config['stoa-info']:
     reftables[config['stoa-info']['reftable']['name']]=config['stoa-info']['reftable']['coords']
 
-# Connection to action server
+# Connection to action server and userstate server
 if "ActionHost" in config['stoa-info']:
     acthost = config['stoa-info']["ActionHost"].strip()
 else:
@@ -56,7 +59,36 @@ else:
 actConnect = grpc.insecure_channel('{}:7000'.format(acthost))
 actions = action_pb2_grpc.ActionStub(actConnect)
 
+'''if "UserstateHost" in config['stoa-info']:
+    userstatehost = config['stoa-info']['UserstateHost'].strip()
+else:
+    userstatehost = "userstate"
+userstateConnect = grpc.insecure_channel('{}:6999'.format(userstatehost))
+userstate = userstate_pb2_grpc.UserstateStub(userstateConnect)
+
+class Userstate(object):
+    @staticmethod
+    def start():
+        userstate.start(userstate_pb2.Empty())
+    @staticmethod
+    def get(id, key):
+        m = userstate.get(userstate_pb2.getRequest(id=id, key=key))
+        return m.value
+    @staticmethod
+    def set(id, key, value):
+        userstate.set(userstate_pb2.setRequest(id=id, key=key, value=value))
+    @staticmethod
+    def check(id):
+        m = userstate.check(userstate_pb2.checkRequest(id=id))
+        return m.value'''
+
 class Actions(object):
+    @staticmethod
+    def push(usertok, command, path):
+        m = actions.push(action_pb2.pushReq(cmdFile=command,
+                                            pathname=path,
+                                            usertoken=usertok))
+        return m.mess
     @staticmethod
     def glob(pathname):
         filelist = []
@@ -64,6 +96,10 @@ class Actions(object):
             filelist.append(item.filename)
             print(item.filename)
         return filelist
+    @staticmethod
+    def isFree(usertoken):
+        m = actions.isFree(action_pb2.isFreeReq(usertoken=usertoken))
+        return m.value
 
 obsfile = "" #TODO: Link this value to config file
 
@@ -105,7 +141,7 @@ def htmlify(tab, collist=[]):
     result += "</table>"
     return result
 
-
+# TODO see if this can be removed
 def startBackend():
     """
     Initialises the web database (distinct from the pipeline one) and
@@ -116,19 +152,7 @@ def startBackend():
     global started
     if started:
         return
-    dbcon = sql.connect('contents.db')
-    with dbcon:
-        c = dbcon.cursor()
-        c.execute("CREATE TABLE IF NOT EXISTS tblUsers(\
-                   UID INT,\
-                   Username VARCHAR(100))")
-        c.execute("SELECT * FROM tblUsers")
-        users = c.fetchall()
-        for u in users:
-            userspace[u[1]] = userstate.userState()
-        if len(users)==0:
-            c.execute("INSERT INTO tblUsers (UID, Username) VALUES (0,'admin')")
-            userspace['admin'] = userstate.userState()
+    #Userstate.start()
     started = True
     print("Backend started")
 
@@ -156,16 +180,6 @@ def projectInfo():
         outstring += '<a href="javascript:getPath(\'T{}?0\')">{}</a><br />'.format(dytables[key],key)
     outstring += '</p>'
     return outstring
-
-
-def target():
-    """
-    Reports the target folder
-
-    :return: The name of the current target folder
-    """
-    return targetFolder
-
 
 def setTarget(t):
     """
@@ -292,7 +306,7 @@ def folderList(path, direction, userip):
     """
     global userspace
     user = session[userip]
-    currentFolder = userspace[user].folder
+    currentFolder = userstate.get(user, "folder")
 
     flaglist = makeFlagList()
     filelist = Actions.glob(path+"*")
@@ -303,7 +317,7 @@ def folderList(path, direction, userip):
             currentFolder = currentFolder[:-clip]
         else:
             currentFolder += "/"+re.split("/", filelist[0])[-1] + "/"
-        userspace[user].folder = currentFolder
+        userstate.set(user,"folder",currentFolder)
         return folderList(targetFolder+currentFolder, direction, userip)
     if path+"product.xml" in filelist:
         filelist = xmlListing(path) #Switch over to yml and generalise
@@ -337,7 +351,7 @@ def folderList(path, direction, userip):
                                           "visible",
                                           "hidden")
     output += "</ul>"
-    userspace[user].folder = currentFolder
+    userstate.set(user, "folder", currentFolder)
     return output
 
 
@@ -390,9 +404,6 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
         :param origin: Page originating WS request
         :return: Always "True" at the moment
         """
-        # Code for checking page originating WS request
-        # print(urllib.parse.urlparse(origin))
-        # self.reqorigin = urllib.parse.urlparse(origin).netloc
         return True
 
     def open(self):
@@ -433,24 +444,25 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             tokens = re.split(",", message[1:])
             session[userip] = tokens[0]
             user = tokens[0]
-            if user in userspace:
-                userspace[user].wsroot = tokens[1]
+            if userstate.check(user):
+                userstate.set(user, "wsroot", tokens[1])
 
         if userip in session:
             user = session[userip]
-            currentFolder = userspace[user].folder
-            userspace[user].ip = userip
+            currentFolder = userstate.get(user, "folder")
+            userstate.set(user, "ip", userip)
         else:
             self.write_message('<script  type="text/javascript">window.location="/login"</script>')
             return
 
         # Always attempt to finanlise any process running
-        userspace[user].finalise()
+        # userspace[user].finalise()
+        sys.stdout.flush()
 
         if message[0] == '.':
             if message[1] == '1':
                 return
-            if message[1] == '2':
+            '''if message[1] == '2':
                 if len(userspace[user].procreport) > 0:
                     self.write_message("#"+userspace[user].procreport)
                     userspace[user].procreport="" #This needs changing really
@@ -459,7 +471,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                     userspace[user].appendQueue()
                     self.write_message("+<div id='conback'><p class='console'>"+"".join(userspace[user].buff[-consoleSize:])+"</p></div>")
                     self.write_message("t10")
-                return
+                return'''
 
         print(time.strftime('[%x %X]')+" "+user+"("+userip+"): "+message)
 
@@ -487,7 +499,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             if len(re.findall("/", currentFolder)) > 0:
                 clip = len(re.split("/", currentFolder)[-2])+1
                 currentFolder = currentFolder[:-clip]
-                userspace[user].folder = currentFolder
+                userstate.set(user, "folder", currentFolder)
                 self.write_message(folderList(targetFolder+currentFolder,
                                               -1, userip))
 
@@ -497,7 +509,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             if len(message) == 1:
                 currentFolder = ""
             print(currentFolder)
-            userspace[user].folder = currentFolder
+            userstate.set(user, "folder", currentFolder)
             self.write_message(folderList(targetFolder+currentFolder,
                                           1, userip))
 
@@ -505,7 +517,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
         if message[0] == 'W':
             currentFolder = message[1:]+"/"
             print(currentFolder)
-            userspace[user].folder = currentFolder
+            userstate.set(user, "folder", currentFolder)
             self.write_message(folderList(targetFolder+currentFolder,
                                           1, userip))
 
@@ -527,7 +539,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                 runtype = 'R'
             commandtext = ""
             commandlist = pipe.doActlist("")
-            if userspace[user].proc is not None:
+            if not Action.isFree(session[userip]):
                 commandtext += "<p>There is currently an action in progress<br />"+stopCommand+"</p>"
             monitor = "<div id=monitor></div>"
             for command in commandlist:
@@ -539,7 +551,11 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
         if message[0] == 'R' or message[0] == 'f':
             monitor = "<div id=monitor></div>"
             self.write_message("#"+monitor+"Processing command "+message[1:]+"...<br />"+stopCommand)
-            if (userspace[user].proc is None):
+            command = message[1:].strip()
+            for path in pipe.commandgen(command, targetFolder, noproc=True):
+                print(command, path)
+                print(Actions.push(session[userip],command, path))
+            '''if (userspace[user].proc is None):
                 userspace[user].proc = Process(target=procMonitor,
                                                args=(message[1:].strip(),
                                                      targetFolder,
@@ -547,11 +563,11 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                                                      message[0]))
                 userspace[user].proc.start()
             else:
-                self.write_message("#"+monitor+"Action already in progress<br />"+stopCommand)
+                self.write_message("#"+monitor+"Action already in progress<br />"+stopCommand)'''
 
         #Terminate an action
         if message[0] == 'r':
-            userspace[user].proc.terminate()
+            # userspace[user].proc.terminate()
             self.write_message("#Action terminated<br />"+stopCommand)
 
 
@@ -620,7 +636,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             commandlist = pipe.doActlist("")
             for command in commandlist:
                 if 'cwl' in command:
-                    rootname = pipe.opts["ActionPath"]+(re.split(".cwl", command)[0]).strip() + ".yml"
+                    rootname = pipe.scriptFolder+(re.split(".cwl", command)[0]).strip() + ".yml"
                     if not os.path.exists(rootname):
                         open(rootname,"a").close()
                     result+="<a href=\"javascript:getPath('Y{}')\">Edit {} default file</a><br />".format(rootname, command)

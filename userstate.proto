@@ -1,0 +1,47 @@
+//Protocol file for userstate.py server
+
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "io.grpc.userstate";
+option java_outer_classname = "userstateProto";
+option objc_class_prefix = "USER";
+
+package userstate_prot;
+
+service Userstate {
+  rpc start(Empty) returns (statReply) {}
+  rpc get(getRequest) returns (getReply) {}
+  rpc set(setRequest) returns (statReply) {}
+  rpc check(checkRequest) returns (boolReply) {}
+}
+
+message boolReply {
+  bool value = 1;
+}
+
+message checkRequest {
+  string id = 1;
+}
+
+message getRequest {
+  string id = 1;
+  string key = 2;
+}
+
+message setRequest {
+  string id = 1;
+  string key = 2;
+  string value = 3;
+}
+
+message getReply {
+  string value = 1;
+}
+
+message Empty {
+}
+
+message statReply {
+  string status = 1;
+}
