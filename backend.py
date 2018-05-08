@@ -14,9 +14,9 @@ import time
 from yml import yamler
 from imp import load_source
 from fnmatch import fnmatch
-from astropy.coordinates import SkyCoord
-from astroquery.vo_conesearch import ConeSearch
-from astroquery.vo_conesearch.exceptions import VOSError
+#from astropy.coordinates import SkyCoord
+#from astroquery.vo_conesearch import ConeSearch
+#from astroquery.vo_conesearch.exceptions import VOSError
 from astropy.table import Table
 
 import grpc
@@ -224,7 +224,7 @@ def usercheck(userip):
     :return: A session ID, or "False" if there is no such user
     """
     if userip in session:
-        return session[userip] in userspace
+        return userstate.check(session[userip])
     else:
         return False
 
@@ -237,7 +237,7 @@ def getwsroot(userip):
     :return: A URL
     """
     if userip in session:
-        return userspace[session[userip]].wsroot
+        return userstate.get(session[userip], "wsroot")
     else:
         return False
 
@@ -446,6 +446,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             user = tokens[0]
             if userstate.check(user):
                 userstate.set(user, "wsroot", tokens[1])
+                message[0] == 'H'
 
         if userip in session:
             user = session[userip]
@@ -614,7 +615,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             self.write_message(result+"</p>")
 
         #Display a results table
-        if message[0] == 't':
+        '''if message[0] == 't':
             if message[1]=="f":
                 coords = open(reftables[message[2:]],"r")
                 for line in coords:
@@ -628,7 +629,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             if message[1]!="p":
                 toggle = '<a href="javascript:getPath(\'tp\')">Reprocess</a><br />'
             else:
-                toggle = ""
+                toggle = ""'''
 
         #Control file editing console
         if message[0] == 'S':

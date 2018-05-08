@@ -73,7 +73,7 @@ class userstateServer(userstate_pb2_grpc.UserstateServicer):
         global started
         global userspace
         if started:
-            return userstate_pb2.startReply(status="OK")
+            return userstate_pb2.statReply(status="OK")
         started=True
         dbcon = sql.connect('contents.db')
         with dbcon:
@@ -92,11 +92,11 @@ class userstateServer(userstate_pb2_grpc.UserstateServicer):
 
     def get(self, request, context):
         global userspace
-        id = request.id
+        userid = request.id
         key = request.key
-        if id in userspace:
-            if key in userspace[id].state:
-                return userstate_pb2.getReply(value=userspace[id].state[key])
+        if userid in userspace:
+            if key in userspace[userid].state:
+                return userstate_pb2.getReply(value=userspace[userid].state[key])
             else:
                 raise RuntimeError("Bad userspace reference")
         else:
@@ -104,12 +104,12 @@ class userstateServer(userstate_pb2_grpc.UserstateServicer):
 
     def set(self, request, context):
         global userspace
-        id = request.id
+        userid = request.id
         key = request.key
         value = request.value
-        if id in userspace:
-            if key in userspace[id].state:
-                userspace[id].state[key] = value
+        if userid in userspace:
+            if key in userspace[userid].state:
+                userspace[userid].state[key] = value
                 return userstate_pb2.statReply(status="OK")
             else:
                 raise RuntimeError("Bad userspace reference when writing")
@@ -118,8 +118,8 @@ class userstateServer(userstate_pb2_grpc.UserstateServicer):
 
     def check(self, request, context):
         global userspace
-        id = request.id
-        return userstate_pb2.boolReply(value=(id in userspace))
+        userid = request.id
+        return userstate_pb2.boolReply(value=(userid in userspace))
 
 if __name__ == "__main__":
     serverinst = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
