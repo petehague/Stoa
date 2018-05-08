@@ -1,7 +1,6 @@
 # Stoa
 
-Stoa stands for *Script Tracking for Observational Astronomy* and is a process management system designed for large batch operations on astronomical data. It uses a form of containerisation to enables working with heterogenous data sets, and generates data tracking the performance of each execution of a target script
-Stoa runs a script multiple times on the different data, and manages the environment that the script is run in. This means that, for instance, if two different measurement sets need to be reprocessed in different versions of CASA, the script will see the appropriate PATH when it is run.
+Stoa stands for *Script Tracking for Observational Astronomy* and is a workflow management system primarily designed for large scale production of reduced interferometry data. 
 
 # How to Use
 
