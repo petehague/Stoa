@@ -11,18 +11,27 @@ else:
 userstateConnect = grpc.insecure_channel('{}:6999'.format(userstatehost))
 userstate = userstate_pb2_grpc.UserstateStub(userstateConnect)
 
-def get(id, key):
+def get(uid, key):
     global userstate
-    m = userstate.get(userstate_pb2.getRequest(id=id, key=key))
+    m = userstate.get(userstate_pb2.getRequest(id=uid, key=key))
     return m.value
 
-def set(id, key, value):
+def set(uid, key, value):
     global userstate
-    userstate.set(userstate_pb2.setRequest(id=id, key=key, value=value))
+    userstate.set(userstate_pb2.setRequest(id=uid, key=key, value=value))
 
-def check(id):
+def check(uid):
     global userstate
-    m = userstate.check(userstate_pb2.checkRequest(id=id))
+    m = userstate.check(userstate_pb2.checkRequest(id=uid))
     return m.value
+
+def append(uid, report):
+    global userstate
+    userstate.append(userstate_pb2.appendRequest(id=uid, report=report))
+
+def tail(uid, n):
+    global userstate
+    m = userstate.tail(userstate_pb2.tailRequest(id=uid, n=n))
+    return m.buff
 
 userstate.start(userstate_pb2.Empty())

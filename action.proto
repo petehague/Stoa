@@ -50,7 +50,7 @@ message isFreeReq {
 message pushReq {
   string cmdFile = 1;
   string pathname = 2;
-  int32 usertoken = 3;
+  string usertoken = 3;
 }
 
 message pushReply {

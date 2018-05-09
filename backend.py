@@ -59,35 +59,12 @@ else:
 actConnect = grpc.insecure_channel('{}:7000'.format(acthost))
 actions = action_pb2_grpc.ActionStub(actConnect)
 
-'''if "UserstateHost" in config['stoa-info']:
-    userstatehost = config['stoa-info']['UserstateHost'].strip()
-else:
-    userstatehost = "userstate"
-userstateConnect = grpc.insecure_channel('{}:6999'.format(userstatehost))
-userstate = userstate_pb2_grpc.UserstateStub(userstateConnect)
-
-class Userstate(object):
-    @staticmethod
-    def start():
-        userstate.start(userstate_pb2.Empty())
-    @staticmethod
-    def get(id, key):
-        m = userstate.get(userstate_pb2.getRequest(id=id, key=key))
-        return m.value
-    @staticmethod
-    def set(id, key, value):
-        userstate.set(userstate_pb2.setRequest(id=id, key=key, value=value))
-    @staticmethod
-    def check(id):
-        m = userstate.check(userstate_pb2.checkRequest(id=id))
-        return m.value'''
-
 class Actions(object):
     @staticmethod
-    def push(usertok, command, path):
+    def push(usertoken, command, path):
         m = actions.push(action_pb2.pushReq(cmdFile=command,
                                             pathname=path,
-                                            usertoken=usertok))
+                                            usertoken=usertoken))
         return m.mess
     @staticmethod
     def glob(pathname):
@@ -99,7 +76,7 @@ class Actions(object):
     @staticmethod
     def isFree(usertoken):
         m = actions.isFree(action_pb2.isFreeReq(usertoken=usertoken))
-        return m.value
+        return m.result
 
 obsfile = "" #TODO: Link this value to config file
 
@@ -354,41 +331,6 @@ def folderList(path, direction, userip):
     userstate.set(user, "folder", currentFolder)
     return output
 
-
-def prettify(constring):
-    """
-    Convert terminal colour codes to HTML
-
-    :param constring: Terminal output string
-    :return: HTML formatted string
-    """
-    targets = {'\n': '<br />',
-               '\033[1m': '<span class="bold">',
-               '\033[0m': '</span>',
-               '\033[91m': '<span class="red">',
-               '\033[92m': '<span class="green">'}
-    for t in targets:
-        constring = constring.replace(t, targets[t])
-    return constring
-
-
-def procMonitor(command, targetFolder, user, runtype):
-    """
-    Manages the action as a child process.
-
-    :param command: The name of the command to run
-    :param targetFolder: The location to run it
-    :param user: The user index
-    :return: None
-    """
-    global userspace
-    if runtype=='f':
-        command = 'run '+command
-    for report in pipe.commandgen(command, targetFolder, noproc=False):
-        repstring = "{}".format(prettify(report))
-        userspace[user].q.put(repstring)
-
-
 class SocketHandler(tornado.websocket.WebSocketHandler):
     """
     Handler for WebSocket connections
@@ -463,16 +405,10 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
         if message[0] == '.':
             if message[1] == '1':
                 return
-            '''if message[1] == '2':
-                if len(userspace[user].procreport) > 0:
-                    self.write_message("#"+userspace[user].procreport)
-                    userspace[user].procreport="" #This needs changing really
-                    self.write_message("t1000")
-                else:
-                    userspace[user].appendQueue()
-                    self.write_message("+<div id='conback'><p class='console'>"+"".join(userspace[user].buff[-consoleSize:])+"</p></div>")
-                    self.write_message("t10")
-                return'''
+            if message[1] == '2':
+                self.write_message("+<div id='conback'><p class='console'>"+userstate.tail(user,consoleSize)+"</p></div>")
+                self.write_message("t10")
+                return
 
         print(time.strftime('[%x %X]')+" "+user+"("+userip+"): "+message)
 
@@ -540,13 +476,14 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                 runtype = 'R'
             commandtext = ""
             commandlist = pipe.doActlist("")
-            if not Action.isFree(session[userip]):
+            if not Actions.isFree(session[userip]):
                 commandtext += "<p>There is currently an action in progress<br />"+stopCommand+"</p>"
             monitor = "<div id=monitor></div>"
             for command in commandlist:
                 commandtext += '<a href="javascript:getPath(\'{0}{1}\')">\
                                 {1}</a><br />'.format(runtype,command.strip())
             self.write_message("#"+monitor+flagToggle+commandtext)
+            self.write_message("+<div id='conback'><p class='console'></p></div>")
 
         #Run an action
         if message[0] == 'R' or message[0] == 'f':

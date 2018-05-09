@@ -25,26 +25,7 @@ class userState():
         self.buff = []
         self.q = Queue()
         self.procreport = ""
-        self.siteroot = ""
-        self.wsroot = ""
         self.state = {"folder": "", "ip": "", "wsroot": ""}
-
-    def clearBuffer(self):
-        """
-        Clear the buffer
-
-        :return:
-        """
-        self.buff = []
-
-    def appendBuffer(self, newEntry):
-        """
-        Add a string to the buffer
-
-        :param newEntry: The string to add
-        :return: None
-        """
-        self.buff.append(newEntry)
 
     def appendQueue(self):
         """
@@ -120,6 +101,27 @@ class userstateServer(userstate_pb2_grpc.UserstateServicer):
         global userspace
         userid = request.id
         return userstate_pb2.boolReply(value=(userid in userspace))
+
+    def append(self, request, context):
+        global userspace
+        userid = request.id
+        report = request.report
+        if userid in userspace:
+            userspace[userid].buff.append(report)
+        else:
+            raise RuntimeError("Incorrect user key")
+        return userstate_pb2.boolReply(value=True)
+
+    def tail(self, request, context):
+        global userspace
+        userid = request.id
+        n = request.n
+        if userid in userspace:
+            return userstate_pb2.tailReply(buff="".join(userspace[userid].buff[-n:]))
+        else:
+            raise RuntimeError("Incorrect user key")
+
+
 
 if __name__ == "__main__":
     serverinst = grpc.server(futures.ThreadPoolExecutor(max_workers=10))

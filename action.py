@@ -82,12 +82,19 @@ def makeyml(pathname, command):
 def clearStack():
     global procStack
     for usertoken in procStack:
-        command = procStack[usertoken][0][0]
-        pathname = procStack[usertoken][0][1]
-        procStack[usertoken].pop(0)
-        print(">> "+usertoken+" : "+command+" : "+pathname)
-        makeyml(pathname, command)
-        print("   Result: "+ExecCWL(command, pathname))
+        if len(procStack[usertoken])>0:
+            command = procStack[usertoken][0][0]
+            pathname = procStack[usertoken][0][1]
+            procStack[usertoken].pop(0)
+            print(">> "+usertoken+" : "+command+" : "+pathname)
+            userstate.append(usertoken, pathname)
+            makeyml(pathname, command)
+            result = ExecCWL(command, pathname)
+            print("   Result: {}".format(result))
+            if result>0:
+               userstate.append(usertoken, '  <span class="bold"><span class="red">FAILED</span></span><br />')
+            else:
+               userstate.append(usertoken, '  <span class="bold"><span class="green">OK</span></span><br />')
 
 def myGlob(pathname):
     return glob.glob(pathname)

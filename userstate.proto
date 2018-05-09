@@ -14,10 +14,26 @@ service Userstate {
   rpc get(getRequest) returns (getReply) {}
   rpc set(setRequest) returns (statReply) {}
   rpc check(checkRequest) returns (boolReply) {}
+  rpc append(appendRequest) returns (boolReply) {}
+  rpc tail(tailRequest) returns (tailReply) {}
 }
 
 message boolReply {
   bool value = 1;
+}
+
+message tailRequest {
+  string id = 1;
+  int32 n = 2;
+}
+
+message tailReply {
+  string buff = 1;
+}
+
+message appendRequest {
+  string id = 1;
+  string report = 2;
 }
 
 message checkRequest {
