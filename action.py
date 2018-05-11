@@ -21,6 +21,7 @@ targetFolder = config['stoa-info']['workspace']
 scriptPath = os.path.realpath(__file__)
 scriptFolder = "/".join(re.split("/", scriptPath)[:-1]) + "/actions/"
 
+os.environ['PATH'] += ":"+scriptFolder
 
 procStack = {}
 #for name in userstate.getList():
@@ -28,6 +29,8 @@ procStack = {}
 
 
 def cwlinvoke(taskfile, params):
+    print(os.getcwd())
+    sys.stdout.flush()
     taskfac = cwltool.factory.Factory()
     t = taskfac.make(taskfile)
     result = t(**params)
@@ -35,7 +38,7 @@ def cwlinvoke(taskfile, params):
 
 
 def manager(taskfile, paramfile, outfile):
-    result = cwlinvoke(taskfile,yamler(open(paramfile,"r")))
+    result = cwlinvoke(taskfile,yamler(open(paramfile,"r"),convert=True))
     writeyaml(result, outfile)
 
 def ExecCWL(cmdFile, pathname):
@@ -49,7 +52,7 @@ def ExecCWL(cmdFile, pathname):
         log = open(pathname+"/.pipelog.txt","w")
         log.write("Workflow Exception: {}\n".format(werr.args))
         log.close()
-    writeyaml(result, pathname+"/stoa_out.yml")
+    #writeyaml(result, pathname+"/stoa_out.yml")
     return success
 
 def makeyml(pathname, command):

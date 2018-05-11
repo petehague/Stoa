@@ -4,4 +4,6 @@
 
 import sys
 
-print(sys.argv)
+result = open("result.txt", "w")
+result.write(sys.argv[1])
+result.close()

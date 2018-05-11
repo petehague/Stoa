@@ -492,16 +492,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             command = message[1:].strip()
             for path in pipe.commandgen(command, targetFolder, noproc=True):
                 print(command, path)
-                print(Actions.push(session[userip],command, path))
-            '''if (userspace[user].proc is None):
-                userspace[user].proc = Process(target=procMonitor,
-                                               args=(message[1:].strip(),
-                                                     targetFolder,
-                                                     user,
-                                                     message[0]))
-                userspace[user].proc.start()
-            else:
-                self.write_message("#"+monitor+"Action already in progress<br />"+stopCommand)'''
+                Actions.push(session[userip],command, path)
 
         #Terminate an action
         if message[0] == 'r':

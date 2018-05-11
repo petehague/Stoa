@@ -1,8 +1,10 @@
 import re
+import ast
 
 def insertnode(ydict, index, value):
-    if len(value)==0:
-        return
+    if type(value) is str:
+        if len(value)==0:
+            return
     if index in ydict:
         if type(ydict[index])==list:
             ydict[index].append(value)
@@ -11,7 +13,7 @@ def insertnode(ydict, index, value):
     else:
             ydict[index] = value
 
-def yamler(text):
+def yamler(text, convert=False):
     subtext = []
     ydict = {}
     header = ""
@@ -25,7 +27,14 @@ def yamler(text):
             subtext = []
         tokens = re.split(":", line.strip()) + ['','']
         header = tokens[0]
-        insertnode(ydict, tokens[0], tokens[1].strip())
+        value = tokens[1].strip()
+        if convert:
+            if value.isdigit():
+               value = int(value)
+            else:
+                if (value.replace(".","",1)).isdigit():
+                    value = float(value)
+        insertnode(ydict, header, value)
     if len(subtext)>0:
         insertnode(ydict,header,yamler(subtext))
     #ydict.pop('',None)
