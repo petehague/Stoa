@@ -19,11 +19,8 @@ from fnmatch import fnmatch
 #from astroquery.vo_conesearch.exceptions import VOSError
 from astropy.table import Table
 
-import grpc
-import action_pb2
-import action_pb2_grpc
-
 import userstate_interface as userstate
+import action_interface as action
 
 profiles = []
 
@@ -34,6 +31,8 @@ currentFolder = {}
 userspace = {}
 session = {}
 runStatus = "Nothing"
+
+tasklist = {}
 
 siteroot = "http://127.0.0.1:8888"
 scriptPath = os.path.realpath(__file__)
@@ -50,33 +49,6 @@ filehandler = load_source(handler_name,handlerpath)
 reftables = {}
 if 'reftable' in config['stoa-info']:
     reftables[config['stoa-info']['reftable']['name']]=config['stoa-info']['reftable']['coords']
-
-# Connection to action server and userstate server
-if "ActionHost" in config['stoa-info']:
-    acthost = config['stoa-info']["ActionHost"].strip()
-else:
-    acthost = "action"
-actConnect = grpc.insecure_channel('{}:7000'.format(acthost))
-actions = action_pb2_grpc.ActionStub(actConnect)
-
-class Actions(object):
-    @staticmethod
-    def push(usertoken, command, path):
-        m = actions.push(action_pb2.pushReq(cmdFile=command,
-                                            pathname=path,
-                                            usertoken=usertoken))
-        return m.mess
-    @staticmethod
-    def glob(pathname):
-        filelist = []
-        for item in actions.glob(action_pb2.globReq(pathname=pathname)):
-            filelist.append(item.filename)
-            print(item.filename)
-        return filelist
-    @staticmethod
-    def isFree(usertoken):
-        m = actions.isFree(action_pb2.isFreeReq(usertoken=usertoken))
-        return m.result
 
 obsfile = "" #TODO: Link this value to config file
 
@@ -286,7 +258,7 @@ def folderList(path, direction, userip):
     currentFolder = userstate.get(user, "folder")
 
     flaglist = makeFlagList()
-    filelist = Actions.glob(path+"*")
+    filelist = action.glob(path+"*")
     filelist.sort()
     if len(filelist) == 1 and os.path.isdir(filelist[0]):
         if direction < 0:
@@ -385,6 +357,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
         if message[0] == 'L':
             tokens = re.split(",", message[1:])
             session[userip] = tokens[0]
+            tasklist[session[userip]] = []
             user = tokens[0]
             if userstate.check(user):
                 userstate.set(user, "wsroot", tokens[1])
@@ -398,15 +371,21 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             self.write_message('<script  type="text/javascript">window.location="/login"</script>')
             return
 
-        # Always attempt to finanlise any process running
-        # userspace[user].finalise()
         sys.stdout.flush()
 
         if message[0] == '.':
             if message[1] == '1':
                 return
             if message[1] == '2':
-                self.write_message("+<div id='conback'><p class='console'>"+userstate.tail(user,consoleSize)+"</p></div>")
+                taskreport = ""
+                update = userstate.pop(session[userip])
+                if update!="":
+                    print("UD "+update)
+                for item in tasklist[session[userip]]:
+                    if item[1] in update:
+                        item[2] = re.split(" ", update)[-1]
+                    taskreport += "{}: {}   {}<br />".format(item[0], item[1], item[2])
+                self.write_message("+<div id='conback'><p class='console'>"+taskreport+"</p></div>")
                 self.write_message("t10")
                 return
 
@@ -428,8 +407,6 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             bottomSlice += "</table>"
             self.write_message("#{}".format(tableName))
             self.write_message("*{}".format(bottomSlice))
-
-
 
         #Go back up a level in the file system
         if message[0] == 'B':
@@ -476,7 +453,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                 runtype = 'R'
             commandtext = ""
             commandlist = pipe.doActlist("")
-            if not Actions.isFree(session[userip]):
+            if not action.isFree(session[userip]):
                 commandtext += "<p>There is currently an action in progress<br />"+stopCommand+"</p>"
             monitor = "<div id=monitor></div>"
             for command in commandlist:
@@ -490,15 +467,16 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             monitor = "<div id=monitor></div>"
             self.write_message("#"+monitor+"Processing command "+message[1:]+"...<br />"+stopCommand)
             command = message[1:].strip()
+            tasklist[session[userip]] = []
             for path in pipe.commandgen(command, targetFolder, noproc=True):
                 print(command, path)
-                Actions.push(session[userip],command, path)
+                action.push(session[userip],command, path)
+                tasklist[session[userip]].append([command, path, '<span class="yellow">Working</span>'])
 
         #Terminate an action
         if message[0] == 'r':
             # userspace[user].proc.terminate()
             self.write_message("#Action terminated<br />"+stopCommand)
-
 
         #Display a fits image
         if message[0] == 'D':
@@ -517,20 +495,6 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                 editor += line
             editor += '</textarea>'
             self.write_message(editor)
-
-        #Concatenate data from runs
-        if message[0] == 'C':
-            '''os.chdir(targetFolder)
-            # This needs to be taken out of the code and generalised!
-            os.system(pipe.scriptFolder+"/concat.py "+siteroot)
-            t = Time(Time.now())
-            t.format = 'isot'
-            timestamp = t.value
-            os.system("cp a_results.fits {}/usercache/a_results_{}.fits".format(webPath, timestamp))
-            os.system("rm -rf a_results.fits")
-            os.system("cp s_results.fits {}/usercache/s_results_{}.fits".format(webPath, timestamp))
-            os.system("rm -rf s_results.fits")'''
-            self.write_message(projectInfo())
 
         #Query the run log
         if message[0] == 'Q':

@@ -2,8 +2,8 @@ stoa-info:
   project-name: Example Project
   port: 9000
   workspace: example
-  ActionHost: localhost
-  UserstateHost: localhost
+  ActionHost: action
+  UserstateHost: userstate
   ActionPath: ./actions
   filehandler:
     pattern: *.txt

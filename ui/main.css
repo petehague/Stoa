@@ -206,6 +206,10 @@ span.red {
     color: red;
 }
 
+span.yellow {
+    color: yellow;
+}
+
 span.bold {
     font-weight: bold;
 }

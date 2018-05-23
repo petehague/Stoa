@@ -29,6 +29,11 @@ def append(uid, report):
     global userstate
     userstate.append(userstate_pb2.appendRequest(id=uid, report=report))
 
+def pop(uid):
+    global userstate
+    m = userstate.pop(userstate_pb2.checkRequest(id=uid))
+    return m.value
+
 def tail(uid, n):
     global userstate
     m = userstate.tail(userstate_pb2.tailRequest(id=uid, n=n))

@@ -19,14 +19,16 @@ config = yamler(open("stoa.yml", "r"))
 targetFolder = config['stoa-info']['workspace']
 
 scriptPath = os.path.realpath(__file__)
-scriptFolder = "/".join(re.split("/", scriptPath)[:-1]) + "/actions/"
+scriptFolder = os.path.split(scriptPath)[0]  +os.sep+ "actions"
+
+print(scriptPath)
+print(scriptFolder)
 
 os.environ['PATH'] += ":"+scriptFolder
 
 procStack = {}
 #for name in userstate.getList():
 #    procstack[name] = []
-
 
 def cwlinvoke(taskfile, params):
     print(os.getcwd())
@@ -36,20 +38,17 @@ def cwlinvoke(taskfile, params):
     result = t(**params)
     return result
 
-
-def manager(taskfile, paramfile, outfile):
-    result = cwlinvoke(taskfile,yamler(open(paramfile,"r"),convert=True))
-    writeyaml(result, outfile)
-
 def ExecCWL(cmdFile, pathname):
     result = {}
     success = 0
     cmdFile = scriptFolder + "/" + cmdFile
     try:
-        result = manager(cmdFile, pathname+"/run.yml", pathname+"/.pipelog.txt")
+        result = cwlinvoke(cmdFile,
+                           yamler(open(pathname+"/run.yml", "r"), convert=True))
+        writeyaml(result, pathname+"./pipelog.txt")
     except WorkflowException as werr:
         success = 1
-        log = open(pathname+"/.pipelog.txt","w")
+        log = open(pathname+"/.pipelog.txt","a")
         log.write("Workflow Exception: {}\n".format(werr.args))
         log.close()
     #writeyaml(result, pathname+"/stoa_out.yml")
@@ -90,14 +89,14 @@ def clearStack():
             pathname = procStack[usertoken][0][1]
             procStack[usertoken].pop(0)
             print(">> "+usertoken+" : "+command+" : "+pathname)
-            userstate.append(usertoken, pathname)
+            #userstate.append(usertoken, pathname)
             makeyml(pathname, command)
             result = ExecCWL(command, pathname)
             print("   Result: {}".format(result))
             if result>0:
-               userstate.append(usertoken, '  <span class="bold"><span class="red">FAILED</span></span><br />')
+               userstate.append(usertoken, '{}  <span class="bold"><span class="red">FAILED</span></span><br />'.format(pathname))
             else:
-               userstate.append(usertoken, '  <span class="bold"><span class="green">OK</span></span><br />')
+               userstate.append(usertoken, '{}  <span class="bold"><span class="green">OK</span></span><br />'.format(pathname))
 
 def myGlob(pathname):
     return glob.glob(pathname)

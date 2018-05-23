@@ -112,6 +112,16 @@ class userstateServer(userstate_pb2_grpc.UserstateServicer):
             raise RuntimeError("Incorrect user key")
         return userstate_pb2.boolReply(value=True)
 
+    def pop(self, request, context):
+        global userspace
+        userid = request.id
+        if userid not in userspace:
+            raise RunTimeError("Incorrect user key")
+        if len(userspace[userid].buff)>0:
+            retstr = userspace[userid].buff.pop(0)
+            return userstate_pb2.popReply(value=retstr)
+        return userstate_pb2.popReply(value="")
+
     def tail(self, request, context):
         global userspace
         userid = request.id

@@ -1,5 +1,4 @@
 import re
-import ast
 
 def insertnode(ydict, index, value):
     if type(value) is str:
@@ -39,14 +38,22 @@ def yamler(text, convert=False):
         insertnode(ydict,header,yamler(subtext))
     #ydict.pop('',None)
     return ydict
-           
+
+def makeyaml(ydict, indent=""):
+    for key in ydict:
+        entry = ydict[key]
+        if type(entry) is not list:
+            entry = [entry]
+        for item in entry:
+            if type(item) is dict:
+                yield indent+"{}:\n".format(key)
+                for line in makeyaml(item, indent=indent+"  "):
+                    yield line
+            else:
+                yield indent+"{}: {}\n".format(key, item)
+
 def writeyaml(ydict, filename):
     f = open(filename, "w")
-    for key in ydict:
-        if type(ydict[key]) is dict:
-            f.write("{}:\n".format(key))
-            for inkey in ydict[key]:
-                f.write("  {}: {}\n".format(inkey, ydict[key][inkey]))
-        else:
-            f.write("{}: {}\n".format(key, ydict[key]))
+    for line in makeyaml(ydict):
+        f.write(line)
     f.close()
