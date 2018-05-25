@@ -61,8 +61,6 @@ if 'table' in config['stoa-info']:
         for tab in tablelist:
             dytables[tab['name']] = tab['file']
 
-print(dytables)
-
 stopCommand = "<a href=\"javascript:getPath('r')\">Click here to stop batch</a>"
 
 consoleSize = 20
@@ -383,7 +381,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                     print("UD "+update)
                 for item in tasklist[session[userip]]:
                     if item[1] in update:
-                        item[2] = re.split(" ", update)[-1]
+                        item[2] = " ".join(re.split(" ", update)[1:])
                     taskreport += "{}: {}   {}<br />".format(item[0], item[1], item[2])
                 self.write_message("+<div id='conback'><p class='console'>"+taskreport+"</p></div>")
                 self.write_message("t10")
@@ -453,8 +451,8 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                 runtype = 'R'
             commandtext = ""
             commandlist = pipe.doActlist("")
-            if not action.isFree(session[userip]):
-                commandtext += "<p>There is currently an action in progress<br />"+stopCommand+"</p>"
+            #if not action.isFree(session[userip]):
+            #    commandtext += "<p>There is currently an action in progress<br />"+stopCommand+"</p>"
             monitor = "<div id=monitor></div>"
             for command in commandlist:
                 commandtext += '<a href="javascript:getPath(\'{0}{1}\')">\
@@ -464,8 +462,8 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
 
         #Run an action
         if message[0] == 'R' or message[0] == 'f':
-            monitor = "<div id=monitor></div>"
-            self.write_message("#"+monitor+"Processing command "+message[1:]+"...<br />"+stopCommand)
+            #monitor = "<div id=monitor></div>"
+            #self.write_message("#"+monitor+"Processing command "+message[1:]+"...<br />"+stopCommand)
             command = message[1:].strip()
             tasklist[session[userip]] = []
             for path in pipe.commandgen(command, targetFolder, noproc=True):

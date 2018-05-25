@@ -19,10 +19,8 @@ config = yamler(open("stoa.yml", "r"))
 targetFolder = config['stoa-info']['workspace']
 
 scriptPath = os.path.realpath(__file__)
-scriptFolder = os.path.split(scriptPath)[0]  +os.sep+ "actions"
-
-print(scriptPath)
-print(scriptFolder)
+coreFolder = os.path.split(scriptPath)[0]
+scriptFolder = coreFolder+os.sep+"actions"
 
 os.environ['PATH'] += ":"+scriptFolder
 
@@ -45,7 +43,7 @@ def ExecCWL(cmdFile, pathname):
     try:
         result = cwlinvoke(cmdFile,
                            yamler(open(pathname+"/run.yml", "r"), convert=True))
-        writeyaml(result, pathname+"./pipelog.txt")
+        writeyaml(result, pathname+"/.pipelog.txt")
     except WorkflowException as werr:
         success = 1
         log = open(pathname+"/.pipelog.txt","a")
@@ -64,7 +62,7 @@ def makeyml(pathname, command):
 
     cmdyml = (re.split(".cwl", command)[0]).strip() + ".yml"
     cmdDict = yamler(open(scriptFolder+"/"+cmdyml, "r"))
-    globalDict = yamler(open(scriptFolder+"/stoa.yml","r"))
+    globalDict = yamler(open(coreFolder+"/stoa.yml","r"))
     if not os.path.exists("stoa.yml"):
         open("stoa.yml","a").close()
     batchDict = yamler(open("stoa.yml","r"))
@@ -94,9 +92,9 @@ def clearStack():
             result = ExecCWL(command, pathname)
             print("   Result: {}".format(result))
             if result>0:
-               userstate.append(usertoken, '{}  <span class="bold"><span class="red">FAILED</span></span><br />'.format(pathname))
+               userstate.append(usertoken, '{}  <span class="bold"><span class="red">FAILED</span></span>'.format(pathname))
             else:
-               userstate.append(usertoken, '{}  <span class="bold"><span class="green">OK</span></span><br />'.format(pathname))
+               userstate.append(usertoken, '{}  <span class="bold"><span class="green">OK</span></span>'.format(pathname))
 
 def myGlob(pathname):
     return glob.glob(pathname)
