@@ -6,7 +6,7 @@ class: Workflow
 inputs: []
 
 outputs:
-  results:
+  finalresults:
     type: File
     outputSource: touch/results
 
@@ -19,7 +19,6 @@ steps:
   touch:
     run: Touch.cwl
     in: 
-      touchparam:
-        touchfile: generate/rannum
+      touchfile: generate/rannum
     out: [results]
     

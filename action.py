@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import cwltool.factory
+import nodejs
 from yml import yamler, writeyaml
 import re
 import os
