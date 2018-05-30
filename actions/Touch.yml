@@ -1,2 +1,3 @@
-touchfile: Touch.yml
-
+touchfile: 
+  class: File
+  location: <path>/file1.txt

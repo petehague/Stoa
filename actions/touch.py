@@ -4,12 +4,12 @@ import sys
 import random
 import time
 
-if sys.argv[1] == "-f":
-  inp = open(sys.argv[2], "r")
+inp = open(sys.argv[1], "r")
+try: 
   num = int(inp.read())
-  inp.close()
-else:
-  num = int(sys.argv[1])
+except:
+  num = -1
+inp.close()
 
 delay = random.randrange(0,5)
 time.sleep(delay)
@@ -17,3 +17,5 @@ time.sleep(delay)
 result = open("result.txt", "w")
 result.write("{} {}".format(num,random.randrange(0,10)))
 result.close()
+
+print(num)

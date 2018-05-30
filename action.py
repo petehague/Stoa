@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
 import cwltool.factory
-import nodejs
 from yml import yamler, writeyaml
 import re
 import os
 import sys
+import time
 import glob
 from cwltool.errors import WorkflowException
 
@@ -25,16 +25,29 @@ scriptFolder = coreFolder+os.sep+"actions"
 
 os.environ['PATH'] += ":"+scriptFolder
 
+lockStack = 0 
+
 procStack = {}
 #for name in userstate.getList():
 #    procstack[name] = []
 
-def cwlinvoke(taskfile, params):
-    print(os.getcwd())
-    sys.stdout.flush()
+def ymlvars(ymlfile, output, pathname):
+    f1 = open(ymlfile,"r")
+    f2 = open(output,"w")
+    for line in f1:
+        result = line.replace("<path>", pathname)
+        f2.write(result)
+    f1.close()
+    f2.close()
+
+def cwlinvoke(pathname, taskfile, params):
+    #fallback = os.getcwd()
+    #os.chdir(pathname) # This is probably a bug in cwltool, that it can only use cwd as basedir
+    #print(os.getcwd())
     taskfac = cwltool.factory.Factory()
     t = taskfac.make(taskfile)
     result = t(**params)
+    #os.chdir(fallback)
     return result
 
 def ExecCWL(cmdFile, pathname):
@@ -42,7 +55,8 @@ def ExecCWL(cmdFile, pathname):
     success = 0
     cmdFile = scriptFolder + "/" + cmdFile
     try:
-        result = cwlinvoke(cmdFile,
+        print(yamler(open(pathname+"/run.yml", "r"), convert=True))
+        result = cwlinvoke(pathname, cmdFile,
                            yamler(open(pathname+"/run.yml", "r"), convert=True))
         writeyaml(result, pathname+"/.pipelog.txt")
     except WorkflowException as werr:
@@ -78,10 +92,12 @@ def makeyml(pathname, command):
     for key in specDict:
         globalDict[key] = specDict[key]
 
-    writeyaml(globalDict, pathname+"/run.yml")
+    writeyaml(globalDict, pathname+"/runraw.yml")
+    ymlvars(pathname+"/runraw.yml", pathname+"/run.yml", coreFolder+"/"+pathname)
 
 def clearStack():
     global procStack
+    lockStack = 1
     for usertoken in procStack:
         if len(procStack[usertoken])>0:
             command = procStack[usertoken][0][0]
@@ -96,6 +112,7 @@ def clearStack():
                userstate.append(usertoken, '{}  <span class="bold"><span class="red">FAILED</span></span>'.format(pathname))
             else:
                userstate.append(usertoken, '{}  <span class="bold"><span class="green">OK</span></span>'.format(pathname))
+    lockStack = 0
 
 def myGlob(pathname):
     return glob.glob(pathname)
@@ -113,6 +130,8 @@ class actionServer(action_pb2_grpc.ActionServicer):
         return action_pb2.ExecCWLReply(result=ExecCWL(request.cmdFile, request.pathname))
 
     def push(self, request, context):
+        while lockStack>0:
+          time.sleep(0.1)
         if request.usertoken not in procStack:
             procStack[request.usertoken] = []
         procStack[request.usertoken].append([request.cmdFile, request.pathname])
@@ -141,6 +160,7 @@ if __name__ == "__main__":
     try:
         while True:
             clearStack()
+            time.sleep(1)
             sys.stdout.flush()
     except KeyboardInterrupt:
         serverinst.stop(0)

@@ -2,13 +2,13 @@
 
 cwlVersion: v1.0
 class: CommandLineTool
-baseCommand: touch.py
+baseCommand: /home/prh44/Stoa/actions/touch.py
 
 inputs: 
   touchfile:
     type: File
     inputBinding:
-      prefix: -f    
+      position: 1 
 
 outputs:
   results:

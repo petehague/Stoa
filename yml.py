@@ -52,8 +52,8 @@ def makeyaml(ydict, indent=""):
             else:
                 yield indent+"{}: {}\n".format(key, item)
 
-def writeyaml(ydict, filename):
-    f = open(filename, "w")
+def writeyaml(ydict, filename, append=False):
+    f = open(filename, "a" if append else "w")
     for line in makeyaml(ydict):
         f.write(line)
     f.close()
