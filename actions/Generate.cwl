@@ -4,7 +4,9 @@ cwlVersion: v1.0
 class: CommandLineTool
 baseCommand: generate.py
 
-inputs: []
+inputs: 
+  ranmax:
+    type: int
 
 outputs:
   rannum:
