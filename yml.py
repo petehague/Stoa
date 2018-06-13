@@ -1,4 +1,5 @@
 import re
+import collections
 
 def insertnode(ydict, index, value):
     if type(value) is str:
@@ -14,9 +15,11 @@ def insertnode(ydict, index, value):
 
 def yamler(text, convert=False):
     subtext = []
-    ydict = {}
+    ydict = collections.OrderedDict()
     header = ""
     for line in text:
+        if line[0]=="#" or line.strip()=='':
+            continue
         if line[0:2] == '  ':
             subtext+=[line[2:]]
             continue
@@ -45,7 +48,7 @@ def makeyaml(ydict, indent=""):
         if type(entry) is not list:
             entry = [entry]
         for item in entry:
-            if type(item) is dict:
+            if type(item) is collections.OrderedDict:
                 yield indent+"{}:\n".format(key)
                 for line in makeyaml(item, indent=indent+"  "):
                     yield line

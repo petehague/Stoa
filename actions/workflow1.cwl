@@ -4,8 +4,7 @@ cwlVersion: v1.0
 class: Workflow
 
 inputs:
-  ranmax:
-    type: int
+  genmax: int
 
 outputs:
   finalresults:
@@ -15,7 +14,8 @@ outputs:
 steps:
   generate:
     run: Generate.cwl
-    in: [ranmax]
+    in: 
+      ranmax: genmax
     out: [rannum]
 
   touch:

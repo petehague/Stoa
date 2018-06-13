@@ -1,6 +1,9 @@
+#!/usr/bin/env python
+
 from yml import yamler, writeyaml
 from zipfile import ZipFile
 import re, os, io, glob
+from random import randrange
 
 '''
   The worktable library
@@ -34,6 +37,20 @@ typemap = {'int': 'int',
            'string': 'str',
            'File': 'file'}
 
+def getpaths(curpath, target):
+    result = re.findall("/"+target+"$", curpath)
+    if len(result) == 0:
+        sub = glob.glob(curpath+"/*")
+        paths = []
+        for folder in sub:
+            if not os.path.islink(folder):
+                p = getpaths(folder, target)
+                if p:
+                    paths += p
+        return paths
+    else:
+        return [curpath]
+
 class Worktable():
     def __init__(self, filename = False, template = False):
         if filename:
@@ -47,6 +64,7 @@ class Worktable():
             self.tabdata = []
             self.tabptr = 0
             self.track = []
+            self.lastfilename = ""
 
     def __iter__(self):
         return self
@@ -124,10 +142,23 @@ class Worktable():
                 else:
                     self.fieldtypes = re.split(' ', line)
                     header = 2
+        self.lastfilename = filename
+
+    def unpack(self):
+        with ZipFile(self.lastfilename, "r") as wtab:
+            tempdir = "_tmp_{}".format(randrange(10000,99999)) 
+            os.mkdir(tempdir)
+            wtab.extract("workflow.cwl", path=tempdir)
+            for task in self.tasks:
+                wtab.extract(task[0], path=tempdir)
+        return tempdir+"/workflow.cwl"
+
+    def repack(self, filename):
+        os.system("rm -rf {}".format(os.path.split(filename)[0]))
 
     def save(self, filename):
         with ZipFile(filename, "w") as wtab:
-            tempdir = "_tmp_{}".format(1234) #make random
+            tempdir = "_tmp_{}".format(randrange(10000,99999)) 
             os.mkdir(tempdir)
             writeyaml(self.workflow, tempdir+"/workflow.cwl")
             for task in self.tasks:
@@ -149,6 +180,9 @@ class Worktable():
         if ".yml" in filename:
             self.template = yamler(open(filename, "r"))
 
+    def addtask(self, filename):
+        self.task.append([filename, yamler(open(filename, "r"))])
+
     def setfields(self, flist):
         self.fieldnames = flist
         self.fieldtypes = ["I_int"]*len(flist)
@@ -156,7 +190,7 @@ class Worktable():
     def settypes(self, tlist):
         self.fieldtypes = tlist
 
-    def genfields(self):
+    def genfields(self, path=False):
         inps = self.workflow['inputs']
         outs = self.workflow['outputs']
         if inps=='[]':
@@ -165,22 +199,33 @@ class Worktable():
             outs = []
         self.fieldnames = ['__bindex__']
         self.fieldtypes = ['K_int']
+        if path:
+            self.fieldnames.append("Pathname")
+            self.fieldtypes.append("I_str")
         for field in inps:
-            type = "I_"
-            if inps[field]['type'] in typemap:
-                type += typemap[inps[field]['type']]
+            typestr = "I_"
+            if type(inps[field])==str:
+               rawtype = inps[field]
             else:
-                type += "int"
+               rawtype = inps[field]['type']
+            if rawtype in typemap:
+                typestr += typemap[rawtype]
+            else:
+                typestr += "int"
             self.fieldnames.append(field)
-            self.fieldtypes.append(type)
+            self.fieldtypes.append(typestr)
         for field in outs:
-            type = "O_"
-            if outs[field]['type'] in typemap:
-                type += typemap[outs[field]['type']]
+            typestr = "O_"
+            if type(outs[field])==str:
+               rawtype = outs[field]
             else:
-                type += "int"
+               rawtype = outs[field]['type']
+            if rawtype in typemap:
+                typestr += typemap[rawtype]
+            else:
+                typestr += "int"
             self.fieldnames.append(field)
-            self.fieldtypes.append(type)
+            self.fieldtypes.append(typestr)
 
 
     def addrow(self, data):
@@ -198,3 +243,19 @@ class Worktable():
         print("-"*(13*len(self.fieldnames)))
         for row in self:
             print(linef.format(*row))
+
+if __name__=="__main__":
+    import sys
+    cwlfile = sys.argv[1]
+    ymlfile = sys.argv[2]       
+    newwt = Worktable()
+    newwt.addfile(cwlfile)
+    newwt.addfile(ymlfile)
+    if len(sys.argv)>3:
+        newwt.genfields(path=True)
+        for path in getpaths(".",sys.argv[3]):
+            newwt.addrow(["example/"+path]+[0]*(len(newwt.fieldnames)-2))
+    else:
+        newwt.genfields(path=False)   
+    newwt.save(re.split(".cwl",cwlfile)[0]+".wtx")
+

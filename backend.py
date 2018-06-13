@@ -19,6 +19,8 @@ from fnmatch import fnmatch
 #from astroquery.vo_conesearch.exceptions import VOSError
 from astropy.table import Table
 
+from worktable import Worktable
+
 import userstate_interface as userstate
 import action_interface as action
 
@@ -119,13 +121,19 @@ def projectInfo():
                   Create new results table</a></p>'
 
     #outstring += '<p><a href="javascript:getPath(\'ta\')">External list</a></p>'
-    for ref in reftables:
-        outstring += '<p><a href="javascript:getPath(\'tf{0}\')">{0}</a></p>'.format(ref)
+    #for ref in reftables:
+    #    outstring += '<p><a href="javascript:getPath(\'tf{0}\')">{0}</a></p>'.format(ref)
 
     outstring += '<p>'
     for key in dytables:
         outstring += '<a href="javascript:getPath(\'T{}?0\')">{}</a><br />'.format(dytables[key],key)
     outstring += '</p>'
+
+    outstring += '<p>'
+    for wtfile in glob.glob(targetFolder+"/*.wtx"):
+        outstring += '<a href="javascript:getPath(\'t{0}\')">{0}</a><br />'.format(wtfile)
+    outstring += '</p>'
+
     return outstring
 
 def setTarget(t):
@@ -460,6 +468,18 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             self.write_message("#"+monitor+flagToggle+commandtext)
             self.write_message("+<div id='conback'><p class='console'></p></div>")
 
+        if message[0] == 'P':
+            wtfile = message[1:].strip()
+            wt = Worktable(wtfile)
+            for row in wt:
+                action.push(session[userip],wtfile,row[1])
+
+        if message[0] == 'p':
+            content = message[1:].strip()
+            path = re.split(":",content)[0]
+            command = content[len(path):]
+            action.push(session[userip],command,path)
+
         #Run an action
         if message[0] == 'R' or message[0] == 'f':
             #monitor = "<div id=monitor></div>"
@@ -505,21 +525,25 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             self.write_message(result+"</p>")
 
         #Display a results table
-        '''if message[0] == 't':
-            if message[1]=="f":
-                coords = open(reftables[message[2:]],"r")
-                for line in coords:
-                    pos = SkyCoord(line, unit=("deg", "deg"))
-                    try:
-                        sources = ConeSearch.query_region(pos, '0.1 deg')
-                        sources = sources.to_table() #Its shocking I have to do this!
-                    except VOSError:
-                        sources = Table(names=['objID', 'ra', 'dec'])
-                    self.write_message(htmlify(sources,collist=['objID', 'ra' ,'dec']))
-            if message[1]!="p":
-                toggle = '<a href="javascript:getPath(\'tp\')">Reprocess</a><br />'
-            else:
-                toggle = ""'''
+        if message[0] == 't':
+            wtname = message[1:]
+            wt = Worktable(wtname)
+            tab = '<p><h2>{0}</h2><br /><a href="javascript:getPath(\'P{0}\')">Run Entire Table</a></p><p><table><tr>'.format(wtname)
+            for fname in wt.fieldnames[1:]:
+                tab += "<th>{}</th>".format(fname)
+            tab += "</tr><tr>"
+            for ftype in wt.fieldtypes[1:]:
+                tab += "<th>{}</th>".format(ftype)
+            tab += '</tr><tr><td colspan="{}"></td></tr>'.format(len(wt.fieldtypes)-1)
+            alternator = 0
+            for row in wt:
+                tab +='<tr class="row{}">'.format(alternator)
+                alternator = 1-alternator
+                for col in row[1:]:
+                    tab+="<td>{}</td>".format(col)
+                tab += "</tr>"
+            tab += "</table></p>"
+            self.write_message(tab)
 
         #Control file editing console
         if message[0] == 'S':

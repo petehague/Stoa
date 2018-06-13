@@ -9,6 +9,8 @@ import time
 import glob
 from cwltool.errors import WorkflowException
 
+from worktable import Worktable
+
 from concurrent import futures
 import grpc
 import action_pb2
@@ -53,9 +55,13 @@ def cwlinvoke(pathname, taskfile, params):
 def ExecCWL(cmdFile, pathname):
     result = {}
     success = 0
-    cmdFile = scriptFolder + "/" + cmdFile
+    if ".wtx" in cmdFile:
+       wt = Worktable(cmdFile)
+       cmdFile = wt.unpack()
+    else:
+       wt = False
+       cmdFile = scriptFolder + "/" + cmdFile
     try:
-        print(yamler(open(pathname+"/run.yml", "r"), convert=True))
         result = cwlinvoke(pathname, cmdFile,
                            yamler(open(pathname+"/run.yml", "r"), convert=True))
         writeyaml(result, pathname+"/.pipelog.txt")
@@ -65,6 +71,8 @@ def ExecCWL(cmdFile, pathname):
         log.write("Workflow Exception: {}\n".format(werr.args))
         log.close()
     #writeyaml(result, pathname+"/stoa_out.yml")
+    if wt:
+        wt.repack(cmdFile)
     return success
 
 def makeyml(pathname, command):
@@ -75,8 +83,12 @@ def makeyml(pathname, command):
     :param pathname: The path of the project of interest
     """
 
-    cmdyml = (re.split(".cwl", command)[0]).strip() + ".yml"
-    cmdDict = yamler(open(scriptFolder+"/"+cmdyml, "r"))
+    if ".wtx" in command:
+        wt = Worktable(command)
+        cmdDict = wt.template
+    else:
+        cmdyml = (re.split(".cwl", command)[0]).strip() + ".yml"
+        cmdDict = yamler(open(scriptFolder+"/"+cmdyml, "r"))
     globalDict = yamler(open(coreFolder+"/stoa.yml","r"))
     if not os.path.exists("stoa.yml"):
         open("stoa.yml","a").close()

@@ -182,8 +182,21 @@ table {
     position: relative;
 }
 
-table, th, td {
+table, td {
     border: 1px solid black;
+}
+
+th {
+    background-color: white;
+    border: 1px solid black;
+}
+
+tr.row0 {
+    background-color: #DDDDDD;
+}
+
+tr.row1 {
+    background-color: #87CEFA;
 }
 
 #conback {

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import random
+import sys
 
 if len(sys.argv)>1:
     ranmax = sys.argv[1]
