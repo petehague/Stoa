@@ -37,6 +37,10 @@ typemap = {'int': 'int',
            'string': 'str',
            'File': 'file'}
 
+#Tracking codes
+TR_PENDING = 0
+TR_COMPLETE = 1
+
 def getpaths(curpath, target):
     result = re.findall("/"+target+"$", curpath)
     if len(result) == 0:
@@ -65,6 +69,7 @@ class Worktable():
             self.tabptr = 0
             self.track = []
             self.lastfilename = ""
+            self.keyref = {}
 
     def __iter__(self):
         return self
@@ -111,12 +116,35 @@ class Worktable():
                 stdata[n] = str(datum)
             n+=1
         self.tabdata[key] = [str(bindex)] + stdata
+        self.track[key] = TR_PENDING
+        self.keyref[data[0]] = key
+
+    def update(self, key, data):
+        stdata = self.tabdata[key]
+        for n in range(len(self.fieldtypes)):
+           if 'O' in self.fieldtypes[n]:
+               break
+        for datum in data:
+            if 'O' in self.fieldtypes[n]:
+                stdata[n] = str(datum)
+            n+=1
+        self.tabdata[key] = stdata   
+        self.track[key] = TR_COMPLETE    
+
+    def byref(self, key):
+        if key in self.keyref:
+            return self.keyref[key]
+        else:
+            # TODO: Change to exception for release
+            print("Failed keyref "+key)
+            return 0
 
     def load(self, filename):
         self.tabptr = 0
         self.tabdata = []
         self.tasks = []
         self.track = []
+        self.keyref = {}
         with ZipFile(filename, "r") as wtab:
             workflowFile = wtab.open("workflow.cwl", "r")
             self.workflow = yamler(io.TextIOWrapper(workflowFile))
@@ -134,7 +162,8 @@ class Worktable():
                     continue
                 if header==2:
                     self.tabdata.append(re.split(' ', line))
-                    self.track.append(False)
+                    self.keyref[(self.tabdata[-1])[1]] = len(self.tabdata)-1
+                    self.track.append(TR_COMPLETE)
                     continue
                 if header==0:
                     self.fieldnames = re.split(' ', line)

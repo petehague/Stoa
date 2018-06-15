@@ -48,7 +48,7 @@ def makeyaml(ydict, indent=""):
         if type(entry) is not list:
             entry = [entry]
         for item in entry:
-            if type(item) is collections.OrderedDict:
+            if type(item) is collections.OrderedDict or type(item) is dict:
                 yield indent+"{}:\n".format(key)
                 for line in makeyaml(item, indent=indent+"  "):
                     yield line

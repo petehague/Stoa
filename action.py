@@ -52,11 +52,19 @@ def cwlinvoke(pathname, taskfile, params):
     #os.chdir(fallback)
     return result
 
+def parsecwloutput(pathname, result):
+    outlist = []
+    for output in result:
+        if result[output]['class']=='File':
+            outlist.append(pathname+"/"+result[output]['basename'])
+    return outlist
+
 def ExecCWL(cmdFile, pathname):
     result = {}
     success = 0
     if ".wtx" in cmdFile:
        wt = Worktable(cmdFile)
+       wtFile = cmdFile
        cmdFile = wt.unpack()
     else:
        wt = False
@@ -72,7 +80,11 @@ def ExecCWL(cmdFile, pathname):
         log.close()
     #writeyaml(result, pathname+"/stoa_out.yml")
     if wt:
-        wt.repack(cmdFile)
+        wt.repack(cmdFile) # Needs a more efficient indexing method here
+        index = wt.byref(pathname)
+        wt.update(index,parsecwloutput(pathname, result))
+        wt.save(wtFile)
+                
     return success
 
 def makeyml(pathname, command):

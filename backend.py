@@ -487,7 +487,6 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             command = message[1:].strip()
             tasklist[session[userip]] = []
             for path in pipe.commandgen(command, targetFolder, noproc=True):
-                print(command, path)
                 action.push(session[userip],command, path)
                 tasklist[session[userip]].append([command, path, '<span class="yellow">Working</span>'])
 
