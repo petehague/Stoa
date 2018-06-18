@@ -8,6 +8,17 @@ function commitFile(filename) {
 
 ws.onmessage = function(evt) {
   var msg = evt.data
+  if (msg.charAt(0)==":") {
+    if (document.getElementById("conback") != null) {
+      document.getElementById("conback").innerHTML="<p class='console'>"+msg.substr(1)+"</p>"
+    } else {
+      //This isn't very efficient, but will do for now
+      if (document.getElementById("Worktable") != null) {
+        ws.send("t"+document.getElementById("monitor").innerHTML)
+      }  
+    }
+    return
+  }
   if (msg.charAt(0)=="+") {
     document.getElementById("viewer").innerHTML=msg.substr(1)
     document.getElementById("workarea").innerHTML="&nbsp;"

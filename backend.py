@@ -54,15 +54,6 @@ if 'reftable' in config['stoa-info']:
 
 obsfile = "" #TODO: Link this value to config file
 
-dytables = {}
-if 'table' in config['stoa-info']:
-    tablelist = config['stoa-info']['table']
-    if type(tablelist)!=list:
-        dtyables[tablelist['name']] = tablelist['file']
-    else:
-        for tab in tablelist:
-            dytables[tab['name']] = tab['file']
-
 stopCommand = "<a href=\"javascript:getPath('r')\">Click here to stop batch</a>"
 
 consoleSize = 20
@@ -101,7 +92,6 @@ def startBackend():
     global started
     if started:
         return
-    #Userstate.start()
     started = True
     print("Backend started")
 
@@ -112,22 +102,10 @@ def projectInfo():
 
     :return: HTML output
     """
-    global dytables
-    # TODO Generalise this, move these links into some kind of task file
     outstring = '<h2>{}</h2>'.format(projectname)
     outstring += '<p><a href="javascript:getPath(\'V\')">\
-                  Browse all folders</a></p>'
-    outstring += '<p><a href="javascript:getPath(\'C\')">\
-                  Create new results table</a></p>'
-
-    #outstring += '<p><a href="javascript:getPath(\'ta\')">External list</a></p>'
-    #for ref in reftables:
-    #    outstring += '<p><a href="javascript:getPath(\'tf{0}\')">{0}</a></p>'.format(ref)
-
-    outstring += '<p>'
-    for key in dytables:
-        outstring += '<a href="javascript:getPath(\'T{}?0\')">{}</a><br />'.format(dytables[key],key)
-    outstring += '</p>'
+                  Browse all folders</a><br /><a href="javascript:getPath(\'C\')">\
+                  Create new worktable</a></p>'
 
     outstring += '<p>'
     for wtfile in glob.glob(targetFolder+"/*.wtx"):
@@ -349,7 +327,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
         * A: Get action list
         * R: Run the specified action
         * D: Display a file
-        * C: Concatenate results
+        * C: Create new worktable
         * Q: Query the process table
         * X: Logout
 
@@ -387,32 +365,18 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                 update = userstate.pop(session[userip])
                 if update!="":
                     print("UD "+update)
-                for item in tasklist[session[userip]]:
-                    if item[1] in update:
-                        item[2] = " ".join(re.split(" ", update)[1:])
-                    taskreport += "{}: {}   {}<br />".format(item[0], item[1], item[2])
-                self.write_message("+<div id='conback'><p class='console'>"+taskreport+"</p></div>")
-                self.write_message("t10")
+                    for item in tasklist[session[userip]]:
+                        if item[1] in update:
+                            item[2] = " ".join(re.split(" ", update)[1:])
+                        taskreport += "{}: {}   {}<br />".format(item[0], item[1], item[2])
+                    self.write_message(":"+taskreport)
+                    self.write_message("t10")
                 return
 
         print(time.strftime('[%x %X]')+" "+user+"("+userip+"): "+message)
 
         if message[0] == 'H':
             self.write_message(projectInfo())
-
-        if message[0] == 'T':
-            tokens = re.split("\?",message[1:])
-            tableName = tokens[0]
-            if len(tokens)>1:
-                tableRow = int(tokens[1])
-            else:
-                tableRow = 0
-            bottomSlice = "<table>"
-            for index in range(tableRow-1,tableRow+1):
-                bottomSlice += "<tr>" + ''.join(["<td>A</td>"]*5) + "</tr>"
-            bottomSlice += "</table>"
-            self.write_message("#{}".format(tableName))
-            self.write_message("*{}".format(bottomSlice))
 
         #Go back up a level in the file system
         if message[0] == 'B':
@@ -476,8 +440,9 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
 
         if message[0] == 'p':
             content = message[1:].strip()
-            path = re.split(":",content)[0]
-            command = content[len(path):]
+            command = re.split(":",content)[0]
+            path = content[len(command)+1:]
+            print(command, path)
             action.push(session[userip],command,path)
 
         #Run an action
@@ -513,36 +478,36 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             editor += '</textarea>'
             self.write_message(editor)
 
-        #Query the run log
-        if message[0] == 'Q':
-            result = "<p>"
-            #pathlist = pipe.doQuery(message[1:])
-            pathlist = pipe.doRun("")
-            for pathname in pathlist:
-                if len(pathname)>2:
-                    result += '<a href="javascript:getPath(\'W{0}\')">{1}</a><br/>'.format(pathname[2:], trimPath(pathname[2:]))
-            self.write_message(result+"</p>")
 
         #Display a results table
         if message[0] == 't':
             wtname = message[1:]
             wt = Worktable(wtname)
-            tab = '<p><h2>{0}</h2><br /><a href="javascript:getPath(\'P{0}\')">Run Entire Table</a></p><p><table><tr>'.format(wtname)
+            monitor = "<div id='monitor' style='visibility: hidden'>"+wtname+"</div>"
+            tab = '<p><h2>{0}</h2><br /><a href="javascript:getPath(\'P{0}\')">Run Entire Table</a></p><p><table id = "Worktable"><tr><th></th>'.format(wtname)
             for fname in wt.fieldnames[1:]:
                 tab += "<th>{}</th>".format(fname)
-            tab += "</tr><tr>"
+            tab += "</tr><tr><th></th>"
             for ftype in wt.fieldtypes[1:]:
                 tab += "<th>{}</th>".format(ftype)
             tab += '</tr><tr><td colspan="{}"></td></tr>'.format(len(wt.fieldtypes)-1)
             alternator = 0
             for row in wt:
-                tab +='<tr class="row{}">'.format(alternator)
+                tab +='<tr class="row{}"><th><a href="javascript:getPath(\'p{}:{}\')">run</a></th>'.format(alternator, wtname, row[1])
                 alternator = 1-alternator
+                colid = 1
                 for col in row[1:]:
-                    tab+="<td>{}</td>".format(col)
+                    coltext = col
+                    if wt.fieldtypes[colid][1:] == "_file":
+                        if ".txt" in coltext:
+                            coltext = '<a href="javascript:getPath(\'Y{0}\')">{0}</a>'.format(coltext)
+                        if ".png" in coltext:
+                            coltext = '<img src="{}" />'.format(coltext)
+                    tab+="<td>{}</td>".format(coltext)
+                    colid += 1
                 tab += "</tr>"
             tab += "</table></p>"
-            self.write_message(tab)
+            self.write_message(monitor+tab)
 
         #Control file editing console
         if message[0] == 'S':
