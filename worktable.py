@@ -274,17 +274,40 @@ class Worktable():
             print(linef.format(*row))
 
 if __name__=="__main__":
-    import sys
-    cwlfile = sys.argv[1]
-    ymlfile = sys.argv[2]       
-    newwt = Worktable()
-    newwt.addfile(cwlfile)
-    newwt.addfile(ymlfile)
-    if len(sys.argv)>3:
-        newwt.genfields(path=True)
-        for path in getpaths(".",sys.argv[3]):
-            newwt.addrow(["example/"+path]+[0]*(len(newwt.fieldnames)-2))
+    import sys    
+    if len(sys.argv)>1:
+        cmd = sys.arv[1]
     else:
-        newwt.genfields(path=False)   
-    newwt.save(re.split(".cwl",cwlfile)[0]+".wtx")
+        cmd = ""
+        print("\nUsage: worktable <command> [<options>...]\n")
+        print("    new <cwl file> <yml file> [<target folder>]")
+        print("        Create a new worktable with the same name as cwlfile but .wtx extension")
+        print("        Adding a target folder populates the table with pathnames that match it\n")
+        print("    add <worktable> <filename>")
+        print("        Add a file to the worktable. Use this to include any CWL tasks that are needed\n")
+        print("    show <worktable>")
+        print("        Show the contents of a worktable\n")
+    
+    if cmd=="new":
+        cwlfile = sys.argv[2]
+        ymlfile = sys.argv[3]       
+        newwt = Worktable()
+        newwt.addfile(cwlfile)
+        newwt.addfile(ymlfile)
+        if len(sys.argv)>4:
+            newwt.genfields(path=True)
+            for path in getpaths(".",sys.argv[4]):
+                newwt.addrow(["example/"+path]+[0]*(len(newwt.fieldnames)-2))
+        else:
+            newwt.genfields(path=False)   
+        newwt.save(re.split(".cwl",cwlfile)[0]+".wtx")
+    if cmd=="add":
+        wt = Worktable(sys.argv[2])
+        wt.addtask(sys.argv[3])
+        wt.save(sys.argv[2])
+
+    if cmd=="show":
+        wt = Worktable(sys.argv[2])
+        wt.show()
+
 
