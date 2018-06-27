@@ -222,6 +222,7 @@ class Worktable():
     def genfields(self, path=False):
         inps = self.workflow['inputs']
         outs = self.workflow['outputs']
+        self.trow = []
         if inps=='[]':
             inps = []
         if outs=='[]':
@@ -231,6 +232,7 @@ class Worktable():
         if path:
             self.fieldnames.append("Pathname")
             self.fieldtypes.append("I_str")
+            self.trow.append("")
         for field in inps:
             typestr = "I_"
             if type(inps[field])==str:
@@ -243,6 +245,10 @@ class Worktable():
                 typestr += "int"
             self.fieldnames.append(field)
             self.fieldtypes.append(typestr)
+            if field in self.template:
+                self.trow.append(self.template[field])
+            else:
+                self.trow.append(0)
         for field in outs:
             typestr = "O_"
             if type(outs[field])==str:
@@ -255,11 +261,21 @@ class Worktable():
                 typestr += "int"
             self.fieldnames.append(field)
             self.fieldtypes.append(typestr)
+            if field in self.template:
+                self.trow.append(self.template[field])
+            else:
+                self.trow.append(0)
 
 
-    def addrow(self, data):
+    def addrow(self, data, t=True):
         self.tabdata.append([])
-        self[len(self)-1] = data
+        if not t:
+            self[len(self)-1] = data
+            return
+        self[len(self)-1] = self.template
+        for i in range(len(data)):
+            if data[i] != 0:
+                self[len(self)-1][i] = data[i]
 
     def addtask(self, filename):
         newfile = re.split("/", filename)[-1]

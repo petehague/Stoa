@@ -9,7 +9,6 @@ import xml.etree.ElementTree as et
 import userstate
 import sqlite3 as sql
 from astropy.time import Time
-from multiprocessing import Process
 import time
 from yml import yamler
 from imp import load_source
