@@ -2,7 +2,7 @@
 
 cwlVersion: v1.0
 class: CommandLineTool
-baseCommand: /home/prh44/Stoa/actions/touch.py
+baseCommand: touch.py
 
 inputs: 
   touchfile:

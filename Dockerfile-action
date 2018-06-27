@@ -11,6 +11,12 @@ RUN pip install grpcio-tools
 RUN python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. ./action.proto
 RUN python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. ./userstate.proto
 
+RUN apt-get update && apt-get install -y dos2unix
+
+RUN dos2unix actions/*.py
+RUN dos2unix actions/*.cwl
+RUN dos2unix actions/*.yml
+
 EXPOSE 7000
 
 ENV NAME Stoa Action Server

@@ -292,7 +292,7 @@ class Worktable():
 if __name__=="__main__":
     import sys    
     if len(sys.argv)>1:
-        cmd = sys.arv[1]
+        cmd = sys.argv[1]
     else:
         cmd = ""
         print("\nUsage: worktable <command> [<options>...]\n")
