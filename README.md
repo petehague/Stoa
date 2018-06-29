@@ -2,6 +2,8 @@
 
 Stoa stands for *Script Tracking for Observational Astronomy* and is a workflow management system primarily designed for large scale production of reduced interferometry data. 
 
+This software is still in development; users are encouraged to contact prh44 (AT) cam.ac.uk for assistance, and to follow updates carefully.
+
 # How to Use
 
 To run a demo, set up a virtual environment and then run `demo.sh` - if it doesn't work, keep adding the appropriate python modules with pip until it does (a list is coming)
