@@ -43,13 +43,13 @@ def ymlvars(ymlfile, output, pathname):
     f2.close()
 
 def cwlinvoke(pathname, taskfile, params):
-    #fallback = os.getcwd()
-    #os.chdir(pathname) # This is probably a bug in cwltool, that it can only use cwd as basedir
-    #print(os.getcwd())
+    fallback = os.getcwd()
+    os.chdir(pathname) # This is probably a bug in cwltool, that it can only use cwd as basedir
     taskfac = cwltool.factory.Factory()
     t = taskfac.make(taskfile)
+    params["outdir"] = "/home/prh44/Stoa/"+pathname
     result = t(**params)
-    #os.chdir(fallback)
+    os.chdir(fallback)
     return result
 
 def parsecwloutput(pathname, result):
@@ -65,7 +65,8 @@ def ExecCWL(cmdFile, pathname):
     if ".wtx" in cmdFile:
        wt = Worktable(cmdFile)
        wtFile = cmdFile
-       cmdFile = wt.unpack()
+       cmdFile = "workflow.cwl"
+       wt.unpack(pathname)
     else:
        wt = False
        cmdFile = scriptFolder + "/" + cmdFile
@@ -78,9 +79,7 @@ def ExecCWL(cmdFile, pathname):
         log = open(pathname+"/.pipelog.txt","a")
         log.write("Workflow Exception: {}\n".format(werr.args))
         log.close()
-    #writeyaml(result, pathname+"/stoa_out.yml")
     if wt:
-        wt.repack(cmdFile)
         index = wt.byref(pathname)
         wt.update(index,parsecwloutput(pathname, result))
         wt.save(wtFile)

@@ -186,10 +186,13 @@ class Worktable():
                     header = 2
         self.lastfilename = filename
 
-    def unpack(self):
+    def unpack(self, targetpath=""):
         with ZipFile(self.lastfilename, "r") as wtab:
-            tempdir = "_tmp_{}".format(randrange(10000,99999)) 
-            os.mkdir(tempdir)
+            if targetpath:
+                tempdir = targetpath 
+            else:
+                tempdir = "_tmp_{}".format(randrange(10000,99999))
+                os.mkdir(tempdir)
             wtab.extract("workflow.cwl", path=tempdir)
             for task in self.tasks:
                 wtab.extract(task[0], path=tempdir)
