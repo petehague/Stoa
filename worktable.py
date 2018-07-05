@@ -63,6 +63,7 @@ class Worktable():
             self.workflow = {}
             self.template = {}
             self.tasks = []
+            self.otherfiles = []
             self.fieldnames = []
             self.fieldtypes = []
             self.tabdata = []
@@ -139,10 +140,19 @@ class Worktable():
             print("Failed keyref "+key)
             return 0
 
+    def cat(self):
+        filenames = ["workflow.cwl", "template.yml"]
+        for task in self.tasks:
+            filenames.append(task[0])
+        filenames += self.otherfiles
+        for fn in filenames:
+            yield fn
+
     def load(self, filename):
         self.tabptr = 0
         self.tabdata = []
         self.tasks = []
+        self.otherfiles = []
         self.track = []
         self.keyref = {}
         with ZipFile(filename, "r") as wtab:
@@ -154,6 +164,9 @@ class Worktable():
                 if ".cwl" in cwlfile and cwlfile != "workflow.cwl":
                     taskfile = wtab.open(cwlfile, "r")
                     self.tasks.append([cwlfile, yamler(io.TextIOWrapper(taskfile))])
+                else:
+                    if cwlfile not in ["workflow.cwl", "template.yml", "table.txt"]:
+                        self.otherfiles.append(cwlfile)
             header = 0
             for line in wtab.open("table.txt","r"):
                 line = line.decode("utf8")
@@ -180,6 +193,8 @@ class Worktable():
             wtab.extract("workflow.cwl", path=tempdir)
             for task in self.tasks:
                 wtab.extract(task[0], path=tempdir)
+            for f in self.otherfiles:
+                wtab.extract(f, path=tempdir)
         return tempdir+"/workflow.cwl"
 
     def repack(self, filename):
@@ -211,6 +226,11 @@ class Worktable():
 
     def addtask(self, filename):
         self.task.append([filename, yamler(open(filename, "r"))])
+
+    def addextra(self, filename):
+        self.otherfiles.append(filename)
+        with ZipFile(self.lastfilename, "a") as wtab:
+            wtab.write(filename, os.path.split(filename)[1])
 
     def setfields(self, flist):
         self.fieldnames = flist
@@ -269,23 +289,32 @@ class Worktable():
 
     def addrow(self, data, t=True):
         self.tabdata.append([])
+        self.track.append(TR_PENDING)
         if not t:
             self[len(self)-1] = data
             return
-        self[len(self)-1] = self.template
+        newrow = self.trow
         for i in range(len(data)):
             if data[i] != 0:
-                self[len(self)-1][i] = data[i]
+                newrow[i] = data[i]
+        self[len(self)-1] = newrow
 
     def addtask(self, filename):
         newfile = re.split("/", filename)[-1]
         self.tasks.append([newfile,yamler(open(filename, "r"))])
 
     def show(self):
-        linef = "{:<12} "*len(self.fieldnames)
+        width = str(int(min(15,80/len(self.fieldnames)-1)))
+        linef = ("{:<"+width+"."+width+"} ")*len(self.fieldnames)
         print(linef.format(*self.fieldnames))
         print(linef.format(*self.fieldtypes))
-        print("-"*(13*len(self.fieldnames)))
+        print("-"*(int(width)+1)*len(self.fieldnames))
+        linef = ""
+        for t in self.fieldtypes:
+            if "str" in t:
+                linef += "{:<"+width+"."+width+"} "
+            else:
+                linef += "{:<"+width+"} "
         for row in self:
             print(linef.format(*row))
 
@@ -317,13 +346,21 @@ if __name__=="__main__":
         else:
             newwt.genfields(path=False)   
         newwt.save(re.split(".cwl",cwlfile)[0]+".wtx")
+
     if cmd=="add":
         wt = Worktable(sys.argv[2])
-        wt.addtask(sys.argv[3])
-        wt.save(sys.argv[2])
+        if ".cwl" in sys.argv[3]:
+            wt.addtask(sys.argv[3])
+            wt.save(sys.argv[2])
+        else:
+            wt.addextra(sys.argv[3])
 
     if cmd=="show":
         wt = Worktable(sys.argv[2])
+        print("Contents:")
+        for filename in wt.cat():
+          print("  "+filename)
+        print("\n")
         wt.show()
 
 

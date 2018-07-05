@@ -80,7 +80,7 @@ def ExecCWL(cmdFile, pathname):
         log.close()
     #writeyaml(result, pathname+"/stoa_out.yml")
     if wt:
-        wt.repack(cmdFile) # Needs a more efficient indexing method here
+        wt.repack(cmdFile)
         index = wt.byref(pathname)
         wt.update(index,parsecwloutput(pathname, result))
         wt.save(wtFile)

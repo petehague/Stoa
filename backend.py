@@ -13,9 +13,6 @@ import time
 from yml import yamler
 from imp import load_source
 from fnmatch import fnmatch
-#from astropy.coordinates import SkyCoord
-#from astroquery.vo_conesearch import ConeSearch
-#from astroquery.vo_conesearch.exceptions import VOSError
 from astropy.table import Table
 
 from worktable import Worktable
