@@ -5,6 +5,7 @@ from zipfile import ZipFile
 import re, os, io, glob
 from random import randrange
 import tempfile
+import collections
 
 '''
   The worktable library
@@ -122,17 +123,34 @@ class Worktable():
         self.track[key] = TR_PENDING
         self.keyref[data[0]] = key
 
-    def update(self, key, data):
+    def update(self, key, data, clear=True):
         stdata = self.tabdata[key]
+        bindex = stdata[0]
+        print(key, data, "\n")
+        if clear:
+            for b in range(key, len(self.tabdata)):
+                if self.tabdata[b][0] != bindex:
+                    break
+            if b>key+1:
+                self.tabdata = self.tabdata[:key] + self.tabdata[b:]
+                self.track = self.track[:key] + self.track[key:]
         for n in range(len(self.fieldtypes)):
-           if 'O' in self.fieldtypes[n]:
-               break
-        for datum in data:
             if 'O' in self.fieldtypes[n]:
-                stdata[n] = str(datum)
-            n+=1
-        self.tabdata[key] = stdata   
-        self.track[key] = TR_COMPLETE    
+                break
+        if type(data[0]) is list:
+            tabinsert = [stdata[:n] + ['-']*(len(self.fieldtypes)-n)]
+            tabinsert *= len(data[0])
+            self.tabdata = self.tabdata[:key] + tabinsert + self.tabdata[key+1:]
+            self.track = self.track[:key] + [TR_PENDING]*len(tabinsert) + self.track[key+1:]
+            for i in range(len(data[0])):
+                self.update(key+i, [x[i] for x in data], clear=False) 
+        else:
+            for datum in data:
+                if 'O' in self.fieldtypes[n]:
+                    stdata[n] = str(datum)
+                n+=1
+            self.tabdata[key] = stdata   
+            self.track[key] = TR_COMPLETE    
 
     def byref(self, key):
         if key in self.keyref:
@@ -289,7 +307,9 @@ class Worktable():
             if type(outs[field])==str:
                rawtype = outs[field]
             else:
-               rawtype = outs[field]['type']
+                rawtype = outs[field]['type']
+            if type(rawtype) is collections.OrderedDict:
+                rawtype = rawtype["items"]
             if rawtype in typemap:
                 typestr += typemap[rawtype]
             else:
@@ -325,6 +345,20 @@ class Worktable():
             if 'O_' in self.fieldtypes[i]:
                 for row in self.tabdata:
                     row[i] = "-"
+        b = 0
+        while b<len(self.tabdata):
+            start = b
+            key = self.tabdata[b][0]
+            for b in range(start, len(self.tabdata)):
+                if self.tabdata[b][0] != key:
+                    break
+            diff = b-(start+1)
+            if b>start+1:
+                self.tabdata = self.tabdata[:start+1] + self.tabdata[b:]
+                self.track = self.track[:start] + self.track[start:]
+            b-=diff
+        if self.tabdata[-1][0] == self.tabdata[-2][0]:
+            self.tabdata = self.tabdata[:-1]
    
 
     def addrow(self, data, t=True):
@@ -334,12 +368,9 @@ class Worktable():
             self[len(self)-1] = data
             return
         newrow = self.trow
-        print(newrow)
-        print(data)
         for i in range(len(data)):
             if data[i] != 0:
                 newrow[i] = data[i]
-        print(newrow)
         self[len(self)-1] = newrow
 
     def addtask(self, filename):

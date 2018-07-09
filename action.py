@@ -44,19 +44,30 @@ def ymlvars(ymlfile, output, pathname):
     f2.close()
 
 def cwlinvoke(pathname, taskfile, params):
+    oldpath = os.environ["PATH"]
+    os.environ["PATH"] += os.pathsep + pathname
     taskfac = cwltool.factory.Factory()
     t = taskfac.make(pathname+"/"+taskfile)
     result = t(**params)
+    os.environ["PATH"] = oldpath
     return result
 
-def parsecwloutput(pathname, result):
+def parsecwloutput(pathname, result, l=False):
     outlist = []
     for output in result:
-        if result[output]['class']=='File':
-            outlist.append(os.path.join(pathname,result[output]['basename']))
-            shutil.copyfile(result[output]['location'][7:], 
-                            os.path.join(pathname, result[output]['basename']))
+        if l:
+            outobj = output
+        else:
+            if type(result[output]) is list:
+                outlist.append(parsecwloutput(pathname,result[output], l=True))
+                continue
+            outobj = result[output]
+        if outobj['class']=='File':
+            outlist.append(os.path.join(pathname,outobj['basename']))
+            shutil.copyfile(outobj['location'][7:], 
+                            os.path.join(pathname, outobj['basename']))
             # TODO add a contingence for not file:// URLS (not sure why this would happen though)
+            # TODO add string support etc
     return outlist
 
 def ExecCWL(cmdFile, pathname):
