@@ -72,6 +72,7 @@ class Worktable():
             self.track = []
             self.lastfilename = ""
             self.keyref = {}
+            self.trow = []
 
     def __iter__(self):
         return self
@@ -114,7 +115,7 @@ class Worktable():
         else:
             bindex = 0
         for datum in data:
-            if 'I' in self.fieldtypes[n+1]:
+            if 'I_' in self.fieldtypes[n+1] or 'K_' in self.fieldtypes[n+1]:
                 stdata[n] = str(datum)
             n+=1
         self.tabdata[key] = [str(bindex)] + stdata
@@ -149,7 +150,18 @@ class Worktable():
         for fn in filenames:
             yield fn
 
+    def buildtrow(self):
+        self.trow = []
+        for field in self.fieldnames[1:]:
+            if field in self.template:
+                self.trow.append(self.template[field])
+            else:
+                self.trow.append(0)    
+
     def load(self, filename):
+        '''
+            Loads in a worktable
+        '''
         self.tabptr = 0
         self.tabdata = []
         self.tasks = []
@@ -185,6 +197,7 @@ class Worktable():
                 else:
                     self.fieldtypes = re.split(' ', line)
                     header = 2
+        self.buildtrow()
         self.lastfilename = filename
 
     def unpack(self, targetpath=""):
@@ -288,6 +301,25 @@ class Worktable():
             else:
                 self.trow.append(0)
 
+    def keyoff(self, other, keyfield):
+        keytype = ""
+        for i in range(len(other.fieldnames)):
+            if other.fieldnames[i] == keyfield:
+                keytype = other.fieldtypes[i]
+                keyindex = i
+        if keytype=="":
+            print("No key field "+keyfield)
+            return False
+        if keyfield in self.fieldnames:
+            newkeyfield = keyfield+"_"
+        self.fieldnames = [self.fieldnames[0]] + [newkeyfield] + self.fieldnames[1:]
+        self.fieldtypes = [self.fieldtypes[0]] + ["I_"+keytype[2:]] + self.fieldtypes[1:]
+        self.buildtrow()
+        for row in other:
+            data = [0]*(len(self.fieldnames)-1)
+            data[0] = row[keyindex]
+            self.addrow(data)
+
     def clearall(self):
         for i in range(len(self.fieldtypes)):
             if 'O_' in self.fieldtypes[i]:
@@ -302,9 +334,12 @@ class Worktable():
             self[len(self)-1] = data
             return
         newrow = self.trow
+        print(newrow)
+        print(data)
         for i in range(len(data)):
             if data[i] != 0:
                 newrow[i] = data[i]
+        print(newrow)
         self[len(self)-1] = newrow
 
     def addtask(self, filename):
@@ -374,6 +409,12 @@ if __name__=="__main__":
     if cmd=="clear":
         wt = Worktable(sys.argv[2])
         wt.clearall()
+        wt.save(sys.argv[2])
+
+    if cmd=="keyoff":
+        wt = Worktable(sys.argv[2])
+        otherwt = Worktable(sys.argv[3])
+        wt.keyoff(otherwt, sys.argv[4])
         wt.save(sys.argv[2])
 
 
