@@ -219,7 +219,7 @@ class Worktable():
             tabfile.close()
             for tempfile in glob.glob(tempdir+"/*"):
                 wtab.write(tempfile, os.path.split(tempfile)[1])
-            os.system("rm -rf "+tempdir)
+            #os.system("rm -rf "+tempdir)
 
     def addfile(self, filename):
         if ".cwl" in filename:
@@ -289,6 +289,12 @@ class Worktable():
             else:
                 self.trow.append(0)
 
+    def clearall(self):
+        for i in range(len(self.fieldtypes)):
+            if 'O_' in self.fieldtypes[i]:
+                for row in self.tabdata:
+                    row[i] = "-"
+   
 
     def addrow(self, data, t=True):
         self.tabdata.append([])
@@ -365,5 +371,10 @@ if __name__=="__main__":
           print("  "+filename)
         print("\n")
         wt.show()
+
+    if cmd=="clear":
+        wt = Worktable(sys.argv[2])
+        wt.clearall()
+        wt.save(sys.argv[2])
 
 

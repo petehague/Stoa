@@ -5,6 +5,7 @@ from yml import yamler, writeyaml
 import re
 import os
 import sys
+import shutil
 import time
 import glob
 from cwltool.errors import WorkflowException
@@ -43,20 +44,19 @@ def ymlvars(ymlfile, output, pathname):
     f2.close()
 
 def cwlinvoke(pathname, taskfile, params):
-    fallback = os.getcwd()
-    os.chdir(pathname) # This is probably a bug in cwltool, that it can only use cwd as basedir
     taskfac = cwltool.factory.Factory()
-    t = taskfac.make(taskfile)
-    params["outdir"] = "/home/prh44/Stoa/"+pathname
+    t = taskfac.make(pathname+"/"+taskfile)
     result = t(**params)
-    os.chdir(fallback)
     return result
 
 def parsecwloutput(pathname, result):
     outlist = []
     for output in result:
         if result[output]['class']=='File':
-            outlist.append(pathname+"/"+result[output]['basename'])
+            outlist.append(os.path.join(pathname,result[output]['basename']))
+            shutil.copyfile(result[output]['location'][7:], 
+                            os.path.join(pathname, result[output]['basename']))
+            # TODO add a contingence for not file:// URLS (not sure why this would happen though)
     return outlist
 
 def ExecCWL(cmdFile, pathname):
