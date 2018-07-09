@@ -4,6 +4,7 @@ from yml import yamler, writeyaml
 from zipfile import ZipFile
 import re, os, io, glob
 from random import randrange
+import tempfile
 
 '''
   The worktable library
@@ -191,8 +192,7 @@ class Worktable():
             if targetpath:
                 tempdir = targetpath 
             else:
-                tempdir = "_tmp_{}".format(randrange(10000,99999))
-                os.mkdir(tempdir)
+                tempdir = tempfile.mkdtemp(suffix='wtx')
             wtab.extract("workflow.cwl", path=tempdir)
             for task in self.tasks:
                 wtab.extract(task[0], path=tempdir)
@@ -205,8 +205,7 @@ class Worktable():
 
     def save(self, filename):
         with ZipFile(filename, "w") as wtab:
-            tempdir = "_tmp_{}".format(randrange(10000,99999)) 
-            os.mkdir(tempdir)
+            tempdir = tempfile.mkdtemp(suffix='wtx') 
             writeyaml(self.workflow, tempdir+"/workflow.cwl")
             for task in self.tasks:
                 writeyaml(task[1], tempdir+"/"+task[0])
@@ -217,9 +216,9 @@ class Worktable():
             for row in self.tabdata:
                 tabfile.write(' '.join(row)+"\n")
             tabfile.close()
-            for tempfile in glob.glob(tempdir+"/*"):
-                wtab.write(tempfile, os.path.split(tempfile)[1])
-            #os.system("rm -rf "+tempdir)
+            for contentfile in glob.glob(tempdir+"/*"):
+                wtab.write(contentfile, os.path.split(contentfile)[1])
+            os.system("rm -rf "+tempdir)
 
     def addfile(self, filename):
         if ".cwl" in filename:
