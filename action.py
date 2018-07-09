@@ -5,6 +5,7 @@ from yml import yamler, writeyaml
 import re
 import os
 import sys
+import shutil
 import time
 import glob
 from cwltool.errors import WorkflowException
@@ -43,20 +44,19 @@ def ymlvars(ymlfile, output, pathname):
     f2.close()
 
 def cwlinvoke(pathname, taskfile, params):
-    #fallback = os.getcwd()
-    #os.chdir(pathname) # This is probably a bug in cwltool, that it can only use cwd as basedir
-    #print(os.getcwd())
     taskfac = cwltool.factory.Factory()
-    t = taskfac.make(taskfile)
+    t = taskfac.make(pathname+"/"+taskfile)
     result = t(**params)
-    #os.chdir(fallback)
     return result
 
 def parsecwloutput(pathname, result):
     outlist = []
     for output in result:
         if result[output]['class']=='File':
-            outlist.append(pathname+"/"+result[output]['basename'])
+            outlist.append(os.path.join(pathname,result[output]['basename']))
+            shutil.copyfile(result[output]['location'][7:], 
+                            os.path.join(pathname, result[output]['basename']))
+            # TODO add a contingence for not file:// URLS (not sure why this would happen though)
     return outlist
 
 def ExecCWL(cmdFile, pathname):
@@ -65,7 +65,8 @@ def ExecCWL(cmdFile, pathname):
     if ".wtx" in cmdFile:
        wt = Worktable(cmdFile)
        wtFile = cmdFile
-       cmdFile = wt.unpack()
+       cmdFile = "workflow.cwl"
+       wt.unpack(pathname)
     else:
        wt = False
        cmdFile = scriptFolder + "/" + cmdFile
@@ -78,9 +79,7 @@ def ExecCWL(cmdFile, pathname):
         log = open(pathname+"/.pipelog.txt","a")
         log.write("Workflow Exception: {}\n".format(werr.args))
         log.close()
-    #writeyaml(result, pathname+"/stoa_out.yml")
     if wt:
-        wt.repack(cmdFile)
         index = wt.byref(pathname)
         wt.update(index,parsecwloutput(pathname, result))
         wt.save(wtFile)

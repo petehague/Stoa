@@ -4,6 +4,7 @@ from yml import yamler, writeyaml
 from zipfile import ZipFile
 import re, os, io, glob
 from random import randrange
+import tempfile
 
 '''
   The worktable library
@@ -186,10 +187,12 @@ class Worktable():
                     header = 2
         self.lastfilename = filename
 
-    def unpack(self):
+    def unpack(self, targetpath=""):
         with ZipFile(self.lastfilename, "r") as wtab:
-            tempdir = "_tmp_{}".format(randrange(10000,99999)) 
-            os.mkdir(tempdir)
+            if targetpath:
+                tempdir = targetpath 
+            else:
+                tempdir = tempfile.mkdtemp(suffix='wtx')
             wtab.extract("workflow.cwl", path=tempdir)
             for task in self.tasks:
                 wtab.extract(task[0], path=tempdir)
@@ -202,8 +205,7 @@ class Worktable():
 
     def save(self, filename):
         with ZipFile(filename, "w") as wtab:
-            tempdir = "_tmp_{}".format(randrange(10000,99999)) 
-            os.mkdir(tempdir)
+            tempdir = tempfile.mkdtemp(suffix='wtx') 
             writeyaml(self.workflow, tempdir+"/workflow.cwl")
             for task in self.tasks:
                 writeyaml(task[1], tempdir+"/"+task[0])
@@ -214,8 +216,8 @@ class Worktable():
             for row in self.tabdata:
                 tabfile.write(' '.join(row)+"\n")
             tabfile.close()
-            for tempfile in glob.glob(tempdir+"/*"):
-                wtab.write(tempfile, os.path.split(tempfile)[1])
+            for contentfile in glob.glob(tempdir+"/*"):
+                wtab.write(contentfile, os.path.split(contentfile)[1])
             os.system("rm -rf "+tempdir)
 
     def addfile(self, filename):
@@ -286,6 +288,12 @@ class Worktable():
             else:
                 self.trow.append(0)
 
+    def clearall(self):
+        for i in range(len(self.fieldtypes)):
+            if 'O_' in self.fieldtypes[i]:
+                for row in self.tabdata:
+                    row[i] = "-"
+   
 
     def addrow(self, data, t=True):
         self.tabdata.append([])
@@ -362,5 +370,10 @@ if __name__=="__main__":
           print("  "+filename)
         print("\n")
         wt.show()
+
+    if cmd=="clear":
+        wt = Worktable(sys.argv[2])
+        wt.clearall()
+        wt.save(sys.argv[2])
 
 
