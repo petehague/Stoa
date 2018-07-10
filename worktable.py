@@ -149,7 +149,7 @@ class Worktable():
                 if 'O' in self.fieldtypes[n]:
                     stdata[n] = str(datum)
                 n+=1
-            self.tabdata[key] = stdata   
+            self.tabdata[key] = stdata.copy()   
             self.track[key] = TR_COMPLETE    
 
     def byref(self, key):

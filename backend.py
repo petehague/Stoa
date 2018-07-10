@@ -488,8 +488,13 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                 tab += "<th>{}</th>".format(ftype)
             tab += '</tr><tr><td colspan="{}"></td></tr>'.format(len(wt.fieldtypes)-1)
             alternator = 0
+            lastbindex = -1
             for row in wt:
-                tab +='<tr class="row{}"><th><a href="javascript:getPath(\'p{}:{}\')">run</a></th>'.format(alternator, wtname, row[1])
+                bindex = row[0]
+                if bindex==lastbindex:
+                    tab += '<tr class="row{}"><th>&nbsp;</th>'.format(alternator)
+                else:
+                    tab +='<tr class="row{}"><th><a href="javascript:getPath(\'p{}:{}\')">run</a></th>'.format(alternator, wtname, row[1])
                 alternator = 1-alternator
                 colid = 1
                 for col in row[1:]:
@@ -499,9 +504,13 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                             coltext = '<a href="javascript:getPath(\'Y{0}\')">{0}</a>'.format(coltext)
                         if ".png" in coltext:
                             coltext = '<img src="{}" />'.format(coltext)
-                    tab+="<td>{}</td>".format(coltext)
+                    if bindex==lastbindex and "I_" in wt.fieldtypes[colid]:
+                        tab += "<td>&nbsp;</td>"
+                    else:
+                        tab+="<td>{}</td>".format(coltext)
                     colid += 1
                 tab += "</tr>"
+                lastbindex = bindex
             tab += "</table></p>"
             self.write_message(monitor+tab)
 
