@@ -1,5 +1,5 @@
 stoa-info:
-  project-name: Example Project
+  project-name: ALMA Project
   port: 9000
   workspace: example
   ActionHost: localhost

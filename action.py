@@ -8,6 +8,7 @@ import sys
 import shutil
 import time
 import glob
+import tempfile
 from cwltool.errors import WorkflowException
 
 from worktable import Worktable
@@ -46,10 +47,14 @@ def ymlvars(ymlfile, output, pathname):
 def cwlinvoke(pathname, taskfile, params):
     oldpath = os.environ["PATH"]
     os.environ["PATH"] += os.pathsep + pathname
+
     taskfac = cwltool.factory.Factory()
-    t = taskfac.make(pathname+"/"+taskfile)
+    t = taskfac.make(pathname+os.sep+taskfile)
+    params["stoafolder"]=os.path.join(os.getcwd(),pathname)
     result = t(**params)
+
     os.environ["PATH"] = oldpath
+    print(result)
     return result
 
 def parsecwloutput(pathname, result, l=False):
@@ -62,15 +67,26 @@ def parsecwloutput(pathname, result, l=False):
                 outlist.append(parsecwloutput(pathname,result[output], l=True))
                 continue
             outobj = result[output]
-        if outobj['class']=='File':
-            outlist.append(os.path.join(pathname,outobj['basename']))
-            shutil.copyfile(outobj['location'][7:], 
-                            os.path.join(pathname, outobj['basename']))
-            # TODO add a contingence for not file:// URLS (not sure why this would happen though)
-            # TODO add string support etc
+        if type(outobj) is dict:
+            if outobj['basename']=='list.txt':
+                f = open(outobj['location'][7:], "r")
+                data = []
+                for line in f:
+                    data.append(line.strip())
+                f.close()
+                data = ['-'] if data==[] else data
+                outlist.append(data)
+                continue
+            if outobj['class']=='File':
+                outlist.append(os.path.join(pathname,outobj['basename']))
+                shutil.copyfile(outobj['location'][7:], 
+                                os.path.join(pathname, outobj['basename']))
+                # TODO add a contingence for not file:// URLS (not sure why this would happen though)
+        else:
+            outlist.append(outobj)
     return outlist
 
-def ExecCWL(cmdFile, pathname):
+def ExecCWL(cmdFile, pathname, keyname):
     result = {}
     success = 0
     if ".wtx" in cmdFile:
@@ -80,7 +96,7 @@ def ExecCWL(cmdFile, pathname):
        wt.unpack(pathname)
     else:
        wt = False
-       cmdFile = scriptFolder + "/" + cmdFile
+       cmdFile = scriptFolder + os.sep + cmdFile
     try:
         result = cwlinvoke(pathname, cmdFile,
                            yamler(open(pathname+"/run.yml", "r"), convert=True))
@@ -91,7 +107,7 @@ def ExecCWL(cmdFile, pathname):
         log.write("Workflow Exception: {}\n".format(werr.args))
         log.close()
     if wt:
-        index = wt.byref(pathname)
+        index = wt.byref(keyname)
         wt.update(index,parsecwloutput(pathname, result))
         wt.save(wtFile)
                 
@@ -99,8 +115,7 @@ def ExecCWL(cmdFile, pathname):
 
 def makeyml(pathname, command):
     """
-    Generates a yml file to guide execution, based on the specific->general hierarchy
-    Run specific parameters override batch specific parameters override global parameters
+    Generates a yml file to guide execution
 
     :param pathname: The path of the project of interest
     """
@@ -111,26 +126,18 @@ def makeyml(pathname, command):
     else:
         cmdyml = (re.split(".cwl", command)[0]).strip() + ".yml"
         cmdDict = yamler(open(scriptFolder+"/"+cmdyml, "r"))
-    globalDict = yamler(open(coreFolder+"/stoa.yml","r"))
-    if not os.path.exists("stoa.yml"):
-        open("stoa.yml","a").close()
-    batchDict = yamler(open("stoa.yml","r"))
-    if not os.path.exists(pathname+"/stoa.yml"):
-        open(pathname+"/stoa.yml","a").close()
-    specDict = yamler(open(pathname+"/stoa.yml","r"))
 
-    for key in cmdDict:
-        globalDict[key] = cmdDict[key]
-    for key in batchDict:
-        globalDict[key] = batchDict[key]
-    for key in specDict:
-        globalDict[key] = specDict[key]
+    n = wt.byref(pathname)
+    for i in range(len(wt.fieldnames)):
+        if "I_" in wt.fieldtypes[i]:
+            cmdDict[wt.fieldnames[i]] = wt[n][i]
 
-    writeyaml(globalDict, pathname+"/runraw.yml")
+    writeyaml(cmdDict, pathname+"/runraw.yml")
     ymlvars(pathname+"/runraw.yml", pathname+"/run.yml", coreFolder+"/"+pathname)
+    os.remove(pathname+"/runraw.yml")
 
 def clearStack():
-    global procStack
+    global procStack, lockStack
     lockStack = 1
     for usertoken in procStack:
         if len(procStack[usertoken])>0:
@@ -139,8 +146,14 @@ def clearStack():
             procStack[usertoken].pop(0)
             print(">> "+usertoken+" : "+command+" : "+pathname)
             #userstate.append(usertoken, pathname)
+            if pathname[0]=='-':
+                keyname = pathname[1:]
+                pathname = targetFolder
+            else:
+                keyname = pathname
+            keyname = pathname
             makeyml(pathname, command)
-            result = ExecCWL(command, pathname)
+            result = ExecCWL(command, pathname, keyname)
             print("   Result: {}".format(result))
             if result>0:
                userstate.append(usertoken, '{}  <span class="bold"><span class="red">FAILED</span></span>'.format(pathname))
@@ -164,6 +177,7 @@ class actionServer(action_pb2_grpc.ActionServicer):
         return action_pb2.ExecCWLReply(result=ExecCWL(request.cmdFile, request.pathname))
 
     def push(self, request, context):
+        global lockStack, procStack
         while lockStack>0:
           time.sleep(0.1)
         if request.usertoken not in procStack:
@@ -172,6 +186,7 @@ class actionServer(action_pb2_grpc.ActionServicer):
         return action_pb2.pushReply(mess="OK")
 
     def isFree(self, request, context):
+        global procStack
         if request.usertoken not in procStack:
             procStack[request.usertoken] = []
         if procStack[request.usertoken]==[]:

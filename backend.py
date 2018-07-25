@@ -103,10 +103,19 @@ def projectInfo():
                   Browse all folders</a><br /><a href="javascript:getPath(\'C\')">\
                   Create new worktable</a></p>'
 
-    outstring += '<p>'
+    outstring += '<p><table class="wttab"><tr>'
+    wtcount = 0
     for wtfile in glob.glob(targetFolder+"/*.wtx"):
-        outstring += '<a href="javascript:getPath(\'t{0}\')">{0}</a><br />'.format(wtfile)
-    outstring += '</p>'
+        outstring += '<td class="wtcell">'
+        outstring += '<center><a href="javascript:getPath(\'t{}\')">'.format(wtfile)
+        outstring += '<img width="75px" height="75px" src="static/page.svg" /><br />'
+        outstring+= '{}'.format(os.path.split(wtfile)[1])
+        outstring += '</a></center></td>'
+        wtcount += 1
+        if wtcount == 4:
+            outstring+="<tr></tr>"
+            wtcount = 0
+    outstring += '</tr></table></p>'
 
     return outstring
 
@@ -431,8 +440,14 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
         if message[0] == 'P':
             wtfile = message[1:].strip()
             wt = Worktable(wtfile)
+            wt.clearall() #TODO: Slightly less nuclear solution to this problem
+            wt.save(wtfile)
+            lastbindex = -1
             for row in wt:
-                action.push(session[userip],wtfile,row[1])
+                if row[0] != lastbindex:
+                    rowfolder = row[1] if 'path' in wt.fieldtypes[1] else "-{}".format(row[1])
+                    action.push(session[userip],wtfile,rowfolder)
+                lastbindex = row[0]
 
         if message[0] == 'p':
             content = message[1:].strip()
@@ -480,7 +495,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             wtname = message[1:]
             wt = Worktable(wtname)
             monitor = "<div id='monitor' style='visibility: hidden'>"+wtname+"</div>"
-            tab = '<p><h2>{0}</h2><br /><a href="javascript:getPath(\'P{0}\')">Run Entire Table</a></p><p><table id = "Worktable"><tr><th></th>'.format(wtname)
+            tab = '<p><h2>Worktable: {0}</h2><br /><a href="javascript:getPath(\'P{1}\')">Run Entire Table</a></p><p><table id = "Worktable"><tr><th></th>'.format(os.path.split(wtname)[1], wtname)
             for fname in wt.fieldnames[1:]:
                 tab += "<th>{}</th>".format(fname)
             tab += "</tr><tr><th></th>"
@@ -491,10 +506,11 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             lastbindex = -1
             for row in wt:
                 bindex = row[0]
+                rowfolder = row[1] if 'path' in wt.fieldtypes[1] else "-{}".format(row[1])
                 if bindex==lastbindex:
                     tab += '<tr class="row{}"><th>&nbsp;</th>'.format(alternator)
                 else:
-                    tab +='<tr class="row{}"><th><a href="javascript:getPath(\'p{}:{}\')">run</a></th>'.format(alternator, wtname, row[1])
+                    tab +='<tr class="row{}"><th><a href="javascript:getPath(\'p{}:{}\')">run</a></th>'.format(alternator, wtname, rowfolder)
                 alternator = 1-alternator
                 colid = 1
                 for col in row[1:]:

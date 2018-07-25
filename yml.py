@@ -24,7 +24,8 @@ def yamler(text, convert=False):
             subtext+=[line[2:]]
             continue
         if len(subtext)>0:
-            ydict[header] = yamler(subtext)
+            #ydict[header] = yamler(subtext)
+            insertnode(ydict, header, yamler(subtext))
             header = ""
             subtext = []
         tokens = re.split(":", line.strip()) + ['','']
@@ -43,17 +44,21 @@ def yamler(text, convert=False):
     return ydict
 
 def makeyaml(ydict, indent=""):
+    lastkey = ""
     for key in ydict:
         entry = ydict[key]
         if type(entry) is not list:
             entry = [entry]
         for item in entry:
             if type(item) is collections.OrderedDict or type(item) is dict:
-                yield indent+"{}:\n".format(key)
+                if key!=lastkey:
+                    yield indent+"{}:\n".format(key)
                 for line in makeyaml(item, indent=indent+"  "):
-                    yield line
+                    yield line 
+                lastkey = ""
             else:
                 yield indent+"{}: {}\n".format(key, item)
+                lastkey = key
 
 def writeyaml(ydict, filename, append=False):
     f = open(filename, "a" if append else "w")

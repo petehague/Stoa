@@ -2,6 +2,8 @@ body {
     background-color: #eeeeee;
     padding: 0px;
     margin: 0px;
+    font-family: sans-serif;
+    font-size: 12pt;
 }
 
 #banner {
@@ -42,6 +44,17 @@ h1 {
 .smallicon {
   width: 8px;
   height: 8px;
+}
+
+a {
+  font-style: normal;
+  font-variant: small-caps;
+  text-decoration: none;
+  color: #000055;
+}
+
+a:hover {
+  color: #0000EE;
 }
 
 a.on {
@@ -233,4 +246,15 @@ span.bold {
 
 #nregs {
   visibility: hidden;
+}
+
+table.wttab {
+  border: 0px;
+}
+
+td.wtcell {
+   align-content: center;
+   width: 200px;
+   height: 200px;
+   border: 0px;
 }

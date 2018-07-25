@@ -37,6 +37,7 @@ typemap = {'int': 'int',
            'float': 'float',
            'double': 'float',
            'string': 'str',
+           'stdout': 'str',
            'File': 'file'}
 
 #Tracking codes
@@ -127,6 +128,8 @@ class Worktable():
         stdata = self.tabdata[key]
         bindex = stdata[0]
         print(key, data, "\n")
+        if len(data)==0:
+            return
         if clear:
             for b in range(key, len(self.tabdata)):
                 if self.tabdata[b][0] != bindex:
@@ -168,6 +171,12 @@ class Worktable():
         for fn in filenames:
             yield fn
 
+    def view(self, filename):
+        with ZipFile(self.lastfilename, "r") as wtab:
+            targetfile = wtab.open(filename, "r") 
+            for line in targetfile:
+                print(line.decode('utf8')[:-1])
+
     def buildtrow(self):
         self.trow = []
         for field in self.fieldnames[1:]:
@@ -202,6 +211,8 @@ class Worktable():
             for line in wtab.open("table.txt","r"):
                 line = line.decode("utf8")
                 line = line.strip()
+                if not line:
+                    continue
                 if line[0] == '#':
                     continue
                 if header==2:
@@ -287,11 +298,13 @@ class Worktable():
             self.fieldtypes.append("I_str")
             self.trow.append("")
         for field in inps:
+            if 'stoafolder' in inps:
+                continue
             typestr = "I_"
             if type(inps[field])==str:
-               rawtype = inps[field]
+                rawtype = inps[field]
             else:
-               rawtype = inps[field]['type']
+                rawtype = inps[field]['type']
             if rawtype in typemap:
                 typestr += typemap[rawtype]
             else:
@@ -322,22 +335,22 @@ class Worktable():
                 self.trow.append(0)
 
     def keyoff(self, other, keyfield):
-        keytype = ""
+        keyindex = []
+        selfindex = []
         for i in range(len(other.fieldnames)):
-            if other.fieldnames[i] == keyfield:
-                keytype = other.fieldtypes[i]
-                keyindex = i
-        if keytype=="":
-            print("No key field "+keyfield)
+            if other.fieldnames[i] in keyfield:
+                keyindex.append(i)
+        for i in range(len(self.fieldnames)):
+            if self.fieldnames[i] in keyfield:
+                selfindex.append(i)
+        if keyindex==[]:
+            print("No key fields "+",".join(keyfield))
             return False
-        if keyfield in self.fieldnames:
-            newkeyfield = keyfield+"_"
-        self.fieldnames = [self.fieldnames[0]] + [newkeyfield] + self.fieldnames[1:]
-        self.fieldtypes = [self.fieldtypes[0]] + ["I_"+keytype[2:]] + self.fieldtypes[1:]
-        self.buildtrow()
+        print(keyindex, selfindex)
         for row in other:
             data = [0]*(len(self.fieldnames)-1)
-            data[0] = row[keyindex]
+            for n in range(len(keyindex)):
+                data[selfindex[n]-1] = row[keyindex[n]]
             self.addrow(data)
 
     def clearall(self):
@@ -357,8 +370,9 @@ class Worktable():
                 self.tabdata = self.tabdata[:start+1] + self.tabdata[b:]
                 self.track = self.track[:start] + self.track[start:]
             b-=diff
-        if self.tabdata[-1][0] == self.tabdata[-2][0]:
-            self.tabdata = self.tabdata[:-1]
+        if len(self.tabdata)>1:
+            if self.tabdata[-1][0] == self.tabdata[-2][0]:
+                self.tabdata = self.tabdata[:-1]
    
 
     def addrow(self, data, t=True):
@@ -445,7 +459,19 @@ if __name__=="__main__":
     if cmd=="keyoff":
         wt = Worktable(sys.argv[2])
         otherwt = Worktable(sys.argv[3])
-        wt.keyoff(otherwt, sys.argv[4])
+        wt.keyoff(otherwt, sys.argv[4:])
         wt.save(sys.argv[2])
+
+    if cmd=="addrow":
+        wt = Worktable(sys.argv[2])
+        data = []
+        for item in sys.argv[3:]:
+            data.append(item)
+        wt.addrow(data)
+        wt.save(sys.argv[2])
+
+    if cmd=="view":
+        wt = Worktable(sys.argv[2])
+        wt.view(sys.argv[3])
 
 

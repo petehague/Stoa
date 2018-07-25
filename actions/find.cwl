@@ -12,7 +12,5 @@ inputs:
 
 outputs:
   pathname:
-    type:
-      type: array
-      items: stdout
+    type: stdout
 
