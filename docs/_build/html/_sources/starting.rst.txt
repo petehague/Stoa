@@ -2,18 +2,16 @@ Introduction
 ============
 
 Stoa is designed to operate complex processing pipelines across heterogenous
-data sets. It does this mainly through 'action scripts' - python programs run
-repeatedly in multiple locations, with different parameters and different
-environments. Any python program can be an action script, however additional
-control information can be included in the script to improve its interaction
-with Stoa
+data sets. It does this mainly through Worktables - objects combining a workflow
+object (written in CWL) with a data table. Any program can be inlcuded in a 
+Worktable.
 
 Getting Started
 ---------------
 
-Download the code from https://bitbucket.org/PeterHague/stoa and type::
+Download the code from https://github.com/petehague/stoa and type::
 
-  ./webhost.py .. 9000 local
+  ./demo.sh
 
 in the installation directory. Then open a web browser at the address::
 
@@ -22,23 +20,20 @@ in the installation directory. Then open a web browser at the address::
 General Usage
 -------------
 
-The web server must be pointed to the folder where the data are located.
-The usual command format is::
+The central data structure in Stoa is the Worktable. Worktables encapsulate 
+workflows, written in CWL (Common Workflow Language), which define the inputs and
+outputs of either a single command, or a workflow composed of multiple commands 
+with their inputs and outputs linked. A Worktable is also a table - whose columns
+are defined by the inputs and outputs of the workflow. Once the user has written
+a CWL workflow, a Worktable can be automatically generated from it.
 
-  webhost.py <target folder> <port number>
+The columns corresponding to the workflow outputs are read only, the columns corresponding
+to the workflow input can be written to, and writing to them changes the status of a row
+to indicate that the outputs no longer correspond to the inputs and the row needs to be 
+rerun. Stoa can handle this automatically. 
 
-If a port number is not supplied, it will default to 9000. If you wish to
-access Stoa on the same machine the server runs, the 'local' parameter
-must be added to the end
-
-The interface is generally used thus:
-
-1) Run a script on all matching paths
-
-2) Query the results to find any that are unsatisfactory
-
-3) Use the query to launch another run on that subset
-
-4) Repeat until all results are satisfactory
-
-The stopping criterion is to be determined by the user
+Worktables are linked in a relational manner, so the output from one Worktable can be used
+to populate the rows of another. For a trivial example, a simple worktable can encapsulate the Bash
+command 'find' to locate all the folders in a large directory structure where a process
+should be run. The output of this, one pathname per row, could be used to populate the input
+columns of the Worktable encapsulating another process

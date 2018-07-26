@@ -13,6 +13,10 @@ The web interface initiates a WebSocket connection when started in order to driv
 Data Model
 ----------
 
-The backend database records a table of processes, containing the path where a script was run, the name of that script and its md5 hash for version tracking, and the result of running the script.  
+Worktables always contain the following:
 
-Queries to this process table can then be fed back into the interface, and a script run on only the highlighted processes.
+* A Common Workflow Language (CWL) file detailing the workflow
+* A Yaml file providing a row template
+* The table data
+
+In addition, each Worktable may store any number of files, typically the program that is to be invoked by the workflow

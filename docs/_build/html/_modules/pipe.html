@@ -4,23 +4,12 @@
 
 <html xmlns="http://www.w3.org/1999/xhtml">
   <head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    
     <title>pipe &#8212; STOA 0.1.0 documentation</title>
-    
     <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
-    
-    <script type="text/javascript">
-      var DOCUMENTATION_OPTIONS = {
-        URL_ROOT:    '../',
-        VERSION:     '0.1.0',
-        COLLAPSE_INDEX: false,
-        FILE_SUFFIX: '.html',
-        HAS_SOURCE:  true,
-        SOURCELINK_SUFFIX: '.txt'
-      };
-    </script>
+    <script type="text/javascript" id="documentation_options" data-url_root="../" src="../_static/documentation_options.js"></script>
     <script type="text/javascript" src="../_static/jquery.js"></script>
     <script type="text/javascript" src="../_static/underscore.js"></script>
     <script type="text/javascript" src="../_static/doctools.js"></script>
@@ -32,13 +21,14 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
 
-  </head>
-  <body>
+  </head><body>
   
 
     <div class="document">
       <div class="documentwrapper">
         <div class="bodywrapper">
+          
+
           <div class="body" role="main">
             
   <h1>Source code for pipe</h1><div class="highlight"><pre>
@@ -58,8 +48,13 @@
 <span class="kn">import</span> <span class="nn">hashlib</span>
 <span class="kn">import</span> <span class="nn">time</span>
 <span class="kn">import</span> <span class="nn">sys</span>
-<span class="kn">import</span> <span class="nn">fnmatch</span>
+<span class="c1"># import fnmatch</span>
 <span class="kn">import</span> <span class="nn">procdb</span>
+<span class="kn">from</span> <span class="nn">yml</span> <span class="k">import</span> <span class="n">yamler</span><span class="p">,</span> <span class="n">writeyaml</span>
+
+<span class="kn">import</span> <span class="nn">grpc</span>
+<span class="kn">import</span> <span class="nn">action_pb2</span>
+<span class="kn">import</span> <span class="nn">action_pb2_grpc</span>
 
 <span class="c1"># Python 2 compatibility</span>
 <span class="k">if</span> <span class="n">sys</span><span class="o">.</span><span class="n">version_info</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
@@ -68,25 +63,62 @@
 <span class="c1"># utils</span>
 
 <span class="n">verbose</span> <span class="o">=</span> <span class="kc">False</span>
-<span class="n">opts</span> <span class="o">=</span> <span class="p">{}</span>
-<span class="n">opts</span><span class="p">[</span><span class="s2">&quot;Target&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;product&quot;</span>
-<span class="n">scriptPath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">realpath</span><span class="p">(</span><span class="n">__file__</span><span class="p">)</span>
-<span class="n">opts</span><span class="p">[</span><span class="s2">&quot;ActionPath&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;/&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="n">scriptPath</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span>
-<span class="n">scriptFolder</span> <span class="o">=</span> <span class="n">opts</span><span class="p">[</span><span class="s2">&quot;ActionPath&quot;</span><span class="p">]</span>
 
-<span class="k">if</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="s2">&quot;.pipeopts.txt&quot;</span><span class="p">):</span>
-    <span class="n">optfile</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;.pipeopts.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">optfile</span><span class="p">:</span>
-        <span class="n">key</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="n">line</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
-        <span class="n">value</span> <span class="o">=</span> <span class="n">line</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">key</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
-        <span class="n">opts</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
-    <span class="n">optfile</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+<span class="n">config</span> <span class="o">=</span> <span class="n">yamler</span><span class="p">(</span><span class="nb">open</span><span class="p">(</span><span class="s2">&quot;stoa.yml&quot;</span><span class="p">,</span> <span class="s2">&quot;r&quot;</span><span class="p">))</span>
+
+<span class="k">if</span> <span class="s2">&quot;target&quot;</span> <span class="ow">in</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;stoa-info&#39;</span><span class="p">]:</span>
+    <span class="n">targetFolder</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;stoa-info&#39;</span><span class="p">][</span><span class="s1">&#39;target&#39;</span><span class="p">]</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">targetFolder</span> <span class="o">=</span> <span class="s2">&quot;product&quot;</span>
+
+<span class="n">scriptPath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">realpath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span>
+<span class="k">if</span> <span class="s2">&quot;scriptPath&quot;</span> <span class="ow">in</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;stoa-info&#39;</span><span class="p">]:</span>
+    <span class="n">scriptFolder</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;stoa-info&#39;</span><span class="p">][</span><span class="s1">&#39;scriptPath&#39;</span><span class="p">]</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">scriptFolder</span> <span class="o">=</span> <span class="s2">&quot;actions&quot;</span>
+<span class="n">scriptFolder</span> <span class="o">=</span> <span class="s2">&quot;/&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="n">scriptPath</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="s2">&quot;/&quot;</span><span class="o">+</span><span class="n">scriptFolder</span><span class="o">+</span><span class="s2">&quot;/&quot;</span>
+
+<span class="c1"># Connection to action server</span>
+<span class="k">if</span> <span class="s2">&quot;ActionHost&quot;</span> <span class="ow">in</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;stoa-info&#39;</span><span class="p">]:</span>
+    <span class="n">acthost</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;stoa-info&#39;</span><span class="p">][</span><span class="s2">&quot;ActionHost&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">acthost</span> <span class="o">=</span> <span class="s2">&quot;action&quot;</span>
+<span class="n">actConnect</span> <span class="o">=</span> <span class="n">grpc</span><span class="o">.</span><span class="n">insecure_channel</span><span class="p">(</span><span class="s1">&#39;</span><span class="si">{}</span><span class="s1">:7000&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">acthost</span><span class="p">))</span>
+<span class="n">actions</span> <span class="o">=</span> <span class="n">action_pb2_grpc</span><span class="o">.</span><span class="n">ActionStub</span><span class="p">(</span><span class="n">actConnect</span><span class="p">)</span>
+
+<span class="c1">#Wrapper class</span>
+<span class="k">class</span> <span class="nc">Actions</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">ExecCWL</span><span class="p">(</span><span class="n">cmdFile</span><span class="p">,</span> <span class="n">pathname</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">cmdFile</span><span class="p">,</span> <span class="n">pathname</span><span class="p">)</span>
+        <span class="n">request</span> <span class="o">=</span> <span class="n">action_pb2</span><span class="o">.</span><span class="n">ExecCWLReq</span><span class="p">(</span><span class="n">cmdFile</span> <span class="o">=</span> <span class="n">cmdFile</span><span class="p">,</span>
+                                        <span class="n">pathname</span> <span class="o">=</span> <span class="n">pathname</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">actions</span><span class="o">.</span><span class="n">ExecCWL</span><span class="p">(</span><span class="n">request</span><span class="p">)</span><span class="o">.</span><span class="n">result</span>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">makeyml</span><span class="p">(</span><span class="n">pathname</span><span class="p">,</span> <span class="n">command</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">pathname</span><span class="p">,</span> <span class="n">command</span><span class="p">)</span>
+        <span class="n">request</span> <span class="o">=</span> <span class="n">action_pb2</span><span class="o">.</span><span class="n">makeymlReq</span><span class="p">(</span><span class="n">pathname</span><span class="o">=</span><span class="n">pathname</span><span class="p">,</span> <span class="n">command</span><span class="o">=</span><span class="n">command</span><span class="p">)</span>
+        <span class="n">actions</span><span class="o">.</span><span class="n">makeyml</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Pipeline started using actions at </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">scriptFolder</span><span class="p">))</span>
 
 <span class="n">prefixList</span> <span class="o">=</span> <span class="p">{}</span>
 <span class="n">metacmd</span> <span class="o">=</span> <span class="p">{}</span>
 
 <span class="n">databasepath</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
 <span class="n">queryID</span> <span class="o">=</span> <span class="mi">0</span>
+
+
+<span class="k">def</span> <span class="nf">doFlag</span><span class="p">(</span><span class="n">command</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">procdb</span><span class="o">.</span><span class="n">doFlag</span><span class="p">(</span><span class="n">command</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">doUnflag</span><span class="p">(</span><span class="n">command</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">procdb</span><span class="o">.</span><span class="n">doUnflag</span><span class="p">(</span><span class="n">command</span><span class="p">)</span>
+
+
+<span class="k">def</span> <span class="nf">isFlagged</span><span class="p">(</span><span class="n">command</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">procdb</span><span class="o">.</span><span class="n">isFlagged</span><span class="p">(</span><span class="n">command</span><span class="p">)</span>
 
 
 <div class="viewcode-block" id="setProctabPath"><a class="viewcode-back" href="../funcs.html#pipe.setProctabPath">[docs]</a><span class="k">def</span> <span class="nf">setProctabPath</span><span class="p">(</span><span class="n">pathname</span><span class="p">):</span>
@@ -108,25 +140,35 @@
 <span class="sd">    :param filename: The name of the script file</span>
 <span class="sd">    :return: A list of directives</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">properties</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">f</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
-        <span class="n">line</span> <span class="o">=</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="n">line</span><span class="p">))</span>
-        <span class="k">if</span> <span class="n">line</span><span class="p">[</span><span class="mi">0</span><span class="p">:</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;#+&quot;</span><span class="p">:</span>
-            <span class="n">properties</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">line</span><span class="p">[</span><span class="mi">2</span><span class="p">:])</span>
+    <span class="n">properties</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">tree</span> <span class="o">=</span> <span class="n">yamler</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s1">&#39;stoa&#39;</span> <span class="ow">in</span> <span class="n">tree</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">item</span> <span class="ow">in</span> <span class="n">tree</span><span class="p">[</span><span class="s1">&#39;stoa&#39;</span><span class="p">]:</span>
+            <span class="n">properties</span><span class="p">[</span><span class="n">item</span><span class="p">]</span> <span class="o">=</span> <span class="n">tree</span><span class="p">[</span><span class="s1">&#39;stoa&#39;</span><span class="p">][</span><span class="n">item</span><span class="p">]</span>
     <span class="k">return</span> <span class="n">properties</span></div>
 
 
 <span class="c1"># Commands</span>
 <div class="viewcode-block" id="doDefault"><a class="viewcode-back" href="../funcs.html#pipe.doDefault">[docs]</a><span class="k">def</span> <span class="nf">doDefault</span><span class="p">(</span><span class="n">command</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    The default prefix; simply returns a list of paths containing the target</span>
+<span class="sd">    The default prefix; Returns a list of paths containing the target</span>
 
-<span class="sd">    :param command: Name of command script; not used here</span>
+<span class="sd">    :param command: Name of command script</span>
 <span class="sd">    :return: A list of paths</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">return</span> <span class="n">procdb</span><span class="o">.</span><span class="n">paths</span><span class="p">(</span><span class="n">opts</span><span class="p">[</span><span class="s2">&quot;Target&quot;</span><span class="p">])</span></div>
 
+    <span class="n">target</span> <span class="o">=</span> <span class="n">targetFolder</span>
+    <span class="n">cmdFilename</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="n">scriptFolder</span><span class="o">+</span><span class="s2">&quot;/&quot;</span><span class="o">+</span><span class="n">command</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">props</span> <span class="o">=</span> <span class="n">parseAction</span><span class="p">(</span><span class="n">cmdFilename</span><span class="p">)</span>
+    <span class="k">if</span> <span class="s1">&#39;target&#39;</span> <span class="ow">in</span> <span class="n">props</span><span class="p">:</span>
+        <span class="n">target</span> <span class="o">=</span> <span class="n">props</span><span class="p">[</span><span class="s1">&#39;target&#39;</span><span class="p">]</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Target folder is </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">target</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">procdb</span><span class="o">.</span><span class="n">paths</span><span class="p">(</span><span class="n">target</span><span class="p">)</span></div>
+
+<span class="k">def</span> <span class="nf">doReport</span><span class="p">(</span><span class="n">command</span><span class="p">):</span>
+    <span class="n">reptext</span> <span class="o">=</span> <span class="n">procdb</span><span class="o">.</span><span class="n">getLastConsole</span><span class="p">(</span><span class="n">command</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">reptext</span>
 
 <div class="viewcode-block" id="doQuery"><a class="viewcode-back" href="../funcs.html#pipe.doQuery">[docs]</a><span class="k">def</span> <span class="nf">doQuery</span><span class="p">(</span><span class="n">command</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
@@ -137,7 +179,7 @@
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="k">global</span> <span class="n">queryID</span>
     <span class="n">queryID</span> <span class="o">+=</span> <span class="mi">1</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Query ID: &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">queryID</span><span class="p">))</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Query ID: </span><span class="si">{}</span><span class="s2"> using criteria </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">queryID</span><span class="p">,</span> <span class="n">command</span><span class="p">))</span>
     <span class="k">return</span> <span class="n">procdb</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">command</span><span class="p">)</span></div>
 
 
@@ -195,7 +237,7 @@
     <span class="k">return</span> <span class="n">doRun</span><span class="p">(</span><span class="n">command</span><span class="p">)</span><span class="o">+</span><span class="n">doRetry</span><span class="p">(</span><span class="n">command</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="doOptlist"><a class="viewcode-back" href="../funcs.html#pipe.doOptlist">[docs]</a><span class="k">def</span> <span class="nf">doOptlist</span><span class="p">(</span><span class="n">command</span><span class="p">):</span>
+<div class="viewcode-block" id="doOptlist"><a class="viewcode-back" href="../funcs.html#pipe.doOptlist">[docs]</a><span class="k">def</span> <span class="nf">doOptlist</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="nb">list</span><span class="o">=</span><span class="p">{},</span> <span class="n">indent</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Returns all the program options</span>
 
@@ -203,8 +245,13 @@
 <span class="sd">    :return: List of options</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">path</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">opts</span><span class="p">:</span>
-        <span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">opts</span><span class="p">[</span><span class="n">key</span><span class="p">]))</span>
+    <span class="k">if</span> <span class="nb">list</span><span class="o">==</span><span class="p">{}:</span>
+        <span class="nb">list</span> <span class="o">=</span> <span class="n">config</span>
+    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">:</span>
+        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">key</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">dict</span><span class="p">:</span>
+            <span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">indent</span><span class="o">+</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">: &quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">))</span>
+            <span class="n">path</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">doOptlist</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="nb">list</span><span class="o">=</span><span class="nb">list</span><span class="p">[</span><span class="n">key</span><span class="p">],</span> <span class="n">indent</span><span class="o">=</span><span class="s2">&quot; &quot;</span><span class="o">+</span><span class="n">indent</span><span class="p">))</span>
+        <span class="n">path</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">indent</span><span class="o">+</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">: </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;stoa-info&#39;</span><span class="p">][</span><span class="n">key</span><span class="p">]))</span>
     <span class="k">return</span> <span class="n">path</span></div>
 
 
@@ -215,15 +262,15 @@
 <span class="sd">    :param command: string formatted as &quot;&lt;option&gt; &lt;new value&gt;&quot;</span>
 <span class="sd">    :return: string representation of the new option</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="k">global</span> <span class="n">opts</span>
+    <span class="k">global</span> <span class="n">config</span>
     <span class="n">tokens</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="n">command</span><span class="p">)</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">tokens</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;set &lt;option&gt; &lt;value&gt;&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="p">[]</span>
     <span class="n">option</span> <span class="o">=</span> <span class="n">tokens</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
     <span class="n">value</span> <span class="o">=</span> <span class="n">tokens</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
-    <span class="k">if</span> <span class="n">option</span> <span class="ow">in</span> <span class="n">opts</span><span class="p">:</span>
-        <span class="n">opts</span><span class="p">[</span><span class="n">option</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+    <span class="k">if</span> <span class="n">option</span> <span class="ow">in</span> <span class="n">config</span><span class="p">[</span><span class="s1">&#39;stoa-info&#39;</span><span class="p">]:</span>
+        <span class="n">config</span><span class="p">[</span><span class="s1">&#39;stoa-info&#39;</span><span class="p">][</span><span class="n">option</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
         <span class="k">return</span> <span class="p">[</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2">=</span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">option</span><span class="p">,</span> <span class="n">value</span><span class="p">)]</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Option </span><span class="si">{}</span><span class="s2"> not found&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">option</span><span class="p">))</span>
@@ -237,17 +284,18 @@
 <span class="sd">    :param command: Not used</span>
 <span class="sd">    :return: List of scripts</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Commands:&quot;</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">prefixList</span><span class="p">:</span>
-        <span class="k">if</span> <span class="n">key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="s2">&quot;NONE&quot;</span><span class="p">:</span>
-            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;    &quot;</span><span class="o">+</span><span class="n">key</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Actions:&quot;</span><span class="p">)</span>
-    <span class="n">actions</span> <span class="o">=</span> <span class="p">[]</span>
-    <span class="n">scripts</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">opts</span><span class="p">[</span><span class="s2">&quot;ActionPath&quot;</span><span class="p">]</span><span class="o">+</span><span class="s2">&quot;*.py&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Action path is </span><span class="si">{}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">scriptFolder</span><span class="p">))</span>
+    <span class="k">if</span> <span class="n">verbose</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Commands:&quot;</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">prefixList</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">key</span> <span class="ow">is</span> <span class="ow">not</span> <span class="s2">&quot;NONE&quot;</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;    &quot;</span><span class="o">+</span><span class="n">key</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Actions:&quot;</span><span class="p">)</span>
+    <span class="n">actionlist</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="n">scripts</span> <span class="o">=</span> <span class="n">glob</span><span class="o">.</span><span class="n">glob</span><span class="p">(</span><span class="n">scriptFolder</span><span class="o">+</span><span class="s2">&quot;*.cwl&quot;</span><span class="p">)</span>
     <span class="k">for</span> <span class="n">script</span> <span class="ow">in</span> <span class="n">scripts</span><span class="p">:</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parseAction</span><span class="p">(</span><span class="n">script</span><span class="p">))</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
-            <span class="n">actions</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="s2">&quot;    &quot;</span><span class="o">+</span><span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="n">script</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
-    <span class="k">return</span> <span class="n">actions</span></div>
+        <span class="n">actionlist</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot;/&quot;</span><span class="p">,</span> <span class="n">script</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+    <span class="k">return</span> <span class="n">actionlist</span></div>
 
 
 <span class="c1"># Actions alternative to running an external program</span>
@@ -276,7 +324,8 @@
               <span class="s1">&#39;query&#39;</span><span class="p">:</span> <span class="n">doQuery</span><span class="p">,</span>
               <span class="s1">&#39;env&#39;</span><span class="p">:</span> <span class="n">doOptlist</span><span class="p">,</span>
               <span class="s1">&#39;set&#39;</span><span class="p">:</span> <span class="n">doOptset</span><span class="p">,</span>
-              <span class="s1">&#39;help&#39;</span><span class="p">:</span> <span class="n">doActlist</span><span class="p">}</span>
+              <span class="s1">&#39;help&#39;</span><span class="p">:</span> <span class="n">doActlist</span><span class="p">,</span>
+              <span class="s1">&#39;report&#39;</span><span class="p">:</span> <span class="n">doReport</span><span class="p">}</span>
 
 <span class="n">metacmd</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;list&#39;</span><span class="p">:</span> <span class="n">runDisplay</span><span class="p">,</span>
            <span class="s1">&#39;flagged&#39;</span><span class="p">:</span> <span class="n">runDisplay</span><span class="p">,</span>
@@ -284,12 +333,13 @@
            <span class="s1">&#39;query&#39;</span><span class="p">:</span> <span class="n">runDisplay</span><span class="p">,</span>
            <span class="s1">&#39;env&#39;</span><span class="p">:</span> <span class="n">runDisplay</span><span class="p">,</span>
            <span class="s1">&#39;set&#39;</span><span class="p">:</span> <span class="n">runDisplay</span><span class="p">,</span>
-           <span class="s1">&#39;help&#39;</span><span class="p">:</span> <span class="n">runDisplay</span><span class="p">}</span>
+           <span class="s1">&#39;help&#39;</span><span class="p">:</span> <span class="n">runDisplay</span><span class="p">,</span>
+           <span class="s1">&#39;report&#39;</span><span class="p">:</span> <span class="n">runDisplay</span><span class="p">}</span>
 
-<span class="n">commandPath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="n">__file__</span><span class="p">))</span>
+<span class="n">commandPath</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">abspath</span><span class="p">(</span><span class="vm">__file__</span><span class="p">))</span>
 
 
-<div class="viewcode-block" id="commandgen"><a class="viewcode-back" href="../funcs.html#pipe.commandgen">[docs]</a><span class="k">def</span> <span class="nf">commandgen</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="n">pathname</span><span class="p">):</span>
+<div class="viewcode-block" id="commandgen"><a class="viewcode-back" href="../funcs.html#pipe.commandgen">[docs]</a><span class="k">def</span> <span class="nf">commandgen</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="n">pathname</span><span class="p">,</span> <span class="n">noproc</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
     <span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Main command processing function. Parses file system to find targets</span>
 <span class="sd">    and then invokes the specific action script. Runs as a generator.</span>
@@ -298,7 +348,6 @@
 <span class="sd">    :param pathname: The root path to start the search from</span>
 <span class="sd">    :return: Yields text reports of success/failure</span>
 <span class="sd">    &quot;&quot;&quot;</span>
-    <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">pathname</span><span class="p">)</span>
     <span class="n">prefix</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="n">command</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
     <span class="k">if</span> <span class="n">prefix</span> <span class="ow">in</span> <span class="n">prefixList</span><span class="p">:</span>
         <span class="n">command</span> <span class="o">=</span> <span class="n">command</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">prefix</span><span class="p">):]</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
@@ -309,21 +358,24 @@
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">paths</span><span class="p">)</span> <span class="ow">is</span> <span class="mi">0</span><span class="p">:</span>
         <span class="k">return</span>
 
+    <span class="c1"># Option for use with web interface</span>
+    <span class="k">if</span> <span class="n">noproc</span><span class="p">:</span>
+        <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">path</span>
+        <span class="k">return</span>
+
+    <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">pathname</span><span class="p">)</span>
+
     <span class="k">if</span> <span class="n">prefix</span> <span class="ow">in</span> <span class="n">metacmd</span><span class="p">:</span>
         <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">:</span>
             <span class="n">metacmd</span><span class="p">[</span><span class="n">prefix</span><span class="p">](</span><span class="n">path</span><span class="p">)</span>
         <span class="k">return</span>
 
-    <span class="n">cmdFilename</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="n">opts</span><span class="p">[</span><span class="s2">&quot;ActionPath&quot;</span><span class="p">]</span><span class="o">+</span><span class="s2">&quot;/&quot;</span><span class="o">+</span><span class="n">command</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">cmdFilename</span> <span class="o">=</span> <span class="n">re</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="n">scriptFolder</span><span class="o">+</span><span class="s2">&quot;/&quot;</span><span class="o">+</span><span class="n">command</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
 
-    <span class="k">if</span> <span class="s2">&quot;.py&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cmdFilename</span><span class="p">:</span>
-        <span class="n">cmdFilename</span> <span class="o">=</span> <span class="n">cmdFilename</span><span class="o">+</span><span class="s2">&quot;.py&quot;</span>
-        <span class="n">command</span> <span class="o">=</span> <span class="n">command</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;.py &quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
-        <span class="k">if</span> <span class="s2">&quot;.py&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">command</span><span class="p">:</span>
-            <span class="n">command</span> <span class="o">+=</span> <span class="s2">&quot;.py&quot;</span>
-
-    <span class="k">if</span> <span class="s2">&quot;touch&quot;</span> <span class="ow">in</span> <span class="n">command</span><span class="p">:</span>
-        <span class="n">cmdFilename</span> <span class="o">=</span> <span class="n">scriptFolder</span><span class="o">+</span><span class="n">command</span>
+    <span class="k">if</span> <span class="s2">&quot;.cwl&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cmdFilename</span><span class="p">:</span>
+        <span class="n">cmdFilename</span> <span class="o">=</span> <span class="n">cmdFilename</span><span class="o">+</span><span class="s2">&quot;.cwl&quot;</span>
+        <span class="n">command</span> <span class="o">=</span> <span class="n">command</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s2">&quot; &quot;</span><span class="p">,</span> <span class="s2">&quot;.cwl &quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">cmdFilename</span><span class="p">):</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;No command or action &quot;</span><span class="o">+</span><span class="n">command</span><span class="p">)</span>
@@ -341,18 +393,24 @@
     <span class="n">okcount</span> <span class="o">=</span> <span class="mi">0</span>
     <span class="k">for</span> <span class="n">path</span> <span class="ow">in</span> <span class="n">paths</span><span class="p">:</span>
         <span class="k">yield</span> <span class="n">path</span>
-        <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span>
-        <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+        <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span><span class="o">.</span><span class="n">flush</span><span class="p">()</span> <span class="c1"># Does this do anything now?</span>
+        <span class="n">Actions</span><span class="o">.</span><span class="n">makeyml</span><span class="p">(</span><span class="n">pathname</span><span class="o">+</span><span class="s2">&quot;/&quot;</span><span class="o">+</span><span class="n">path</span><span class="p">,</span> <span class="n">command</span><span class="p">)</span>
+        <span class="c1">#os.chdir(path)</span>
         <span class="n">starttime</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%H:%M:%S&quot;</span><span class="p">)</span>
         <span class="n">startdate</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">strftime</span><span class="p">(</span><span class="s2">&quot;%y/%m/</span><span class="si">%d</span><span class="s2">&quot;</span><span class="p">)</span>
         <span class="n">duration</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
-        <span class="n">result</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">system</span><span class="p">(</span><span class="n">cmdFilename</span><span class="o">+</span><span class="s2">&quot; &amp;&gt; .pipelog.txt&quot;</span><span class="p">)</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">Actions</span><span class="o">.</span><span class="n">ExecCWL</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="n">pathname</span><span class="o">+</span><span class="s2">&quot;/&quot;</span><span class="o">+</span><span class="n">path</span><span class="p">)</span>
+        <span class="c1"># result = os.system(cmdFilename+&quot; &amp;&gt; .pipelog.txt&quot;)</span>
         <span class="n">duration</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span> <span class="o">-</span> <span class="n">duration</span>
-        <span class="k">for</span> <span class="n">x</span> <span class="ow">in</span> <span class="n">re</span><span class="o">.</span><span class="n">findall</span><span class="p">(</span><span class="s2">&quot;\/&quot;</span><span class="p">,</span> <span class="n">path</span><span class="p">):</span>
-            <span class="n">os</span><span class="o">.</span><span class="n">chdir</span><span class="p">(</span><span class="s2">&quot;..&quot;</span><span class="p">)</span>
-
-        <span class="n">procdb</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="n">checksum</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">(),</span> <span class="n">path</span><span class="p">,</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+        <span class="n">pid</span> <span class="o">=</span> <span class="n">procdb</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="n">checksum</span><span class="o">.</span><span class="n">hexdigest</span><span class="p">(),</span> <span class="n">path</span><span class="p">,</span>
                      <span class="n">startdate</span><span class="p">,</span> <span class="n">starttime</span><span class="p">,</span> <span class="n">duration</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+        <span class="c1">#procdb.scanoutput(&quot;.pipelog.txt&quot;, pid)</span>
+        <span class="c1"># os.remove(&quot;.pipelog.txt&quot;)</span>
+
+        <span class="c1">#for x in re.findall(&quot;\/&quot;, path):</span>
+        <span class="c1">#    os.chdir(&quot;..&quot;)</span>
+
         <span class="k">if</span> <span class="n">result</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">yield</span> <span class="s2">&quot; </span><span class="se">\033</span><span class="s2">[1m</span><span class="se">\033</span><span class="s2">[91mFAILED</span><span class="se">\033</span><span class="s2">[0m</span><span class="se">\033</span><span class="s2">[0m</span><span class="se">\n</span><span class="s2">&quot;</span>
         <span class="k">else</span><span class="p">:</span>
@@ -377,7 +435,7 @@
         <span class="nb">print</span><span class="p">(</span><span class="n">report</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">)</span></div>
 
 
-<span class="k">if</span> <span class="n">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
     <span class="n">verbose</span> <span class="o">=</span> <span class="kc">True</span>
     <span class="n">clp</span> <span class="o">=</span> <span class="s2">&quot;&quot;</span>
     <span class="k">for</span> <span class="n">arg</span> <span class="ow">in</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">:]:</span>
@@ -397,17 +455,33 @@
         <span class="n">procCommand</span><span class="p">(</span><span class="n">command</span><span class="p">,</span> <span class="s2">&quot;.&quot;</span><span class="p">)</span>
 
     <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Quiting...&quot;</span><span class="p">)</span>
-    <span class="n">optfile</span> <span class="o">=</span> <span class="nb">open</span><span class="p">(</span><span class="s2">&quot;.pipeopts.txt&quot;</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span>
-    <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">opts</span><span class="p">:</span>
-        <span class="n">optfile</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{}</span><span class="s2"> </span><span class="si">{}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="n">opts</span><span class="p">[</span><span class="n">key</span><span class="p">]))</span>
-    <span class="n">optfile</span><span class="o">.</span><span class="n">close</span><span class="p">()</span>
+    <span class="n">writeyaml</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="s2">&quot;stoa.yml&quot;</span><span class="p">)</span>
 </pre></div>
 
           </div>
+          
         </div>
       </div>
       <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper"><div class="relations">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../index.html">STOA</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../starting.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../design.html">Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../funcs.html">Functions</a></li>
+</ul>
+
+<div class="relations">
 <h3>Related Topics</h3>
 <ul>
   <li><a href="../index.html">Documentation overview</a><ul>
@@ -418,12 +492,14 @@
 </div>
 <div id="searchbox" style="display: none" role="search">
   <h3>Quick search</h3>
+    <div class="searchformwrapper">
     <form class="search" action="../search.html" method="get">
-      <div><input type="text" name="q" /></div>
-      <div><input type="submit" value="Go" /></div>
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
       <input type="hidden" name="check_keywords" value="yes" />
       <input type="hidden" name="area" value="default" />
     </form>
+    </div>
 </div>
 <script type="text/javascript">$('#searchbox').show(0);</script>
         </div>
@@ -434,8 +510,8 @@
       &copy;2017, Peter Hague.
       
       |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.2</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.6</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
       
     </div>
 
