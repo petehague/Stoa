@@ -20,8 +20,7 @@ import action_pb2_grpc
 
 import userstate_interface as userstate
 
-config = yamler(open("stoa.yml", "r"))
-targetFolder = config['stoa-info']['workspace']
+targetFolder = sys.argv[1]
 
 scriptPath = os.path.realpath(__file__)
 coreFolder = os.path.split(scriptPath)[0]
@@ -29,11 +28,9 @@ scriptFolder = coreFolder+os.sep+"actions"
 
 os.environ['PATH'] += ":"+scriptFolder
 
-lockStack = 0 
+lockQueue = 0 
 
-procStack = {}
-#for name in userstate.getList():
-#    procstack[name] = []
+procQueue = {}
 
 def ymlvars(ymlfile, output, pathname):
     f1 = open(ymlfile,"r")
@@ -47,6 +44,7 @@ def ymlvars(ymlfile, output, pathname):
 def cwlinvoke(pathname, taskfile, params):
     oldpath = os.environ["PATH"]
     os.environ["PATH"] += os.pathsep + pathname
+    print(params)
 
     taskfac = cwltool.factory.Factory()
     t = taskfac.make(pathname+os.sep+taskfile)
@@ -86,34 +84,40 @@ def parsecwloutput(pathname, result, l=False):
             outlist.append(outobj)
     return outlist
 
-def ExecCWL(cmdFile, pathname, keyname):
+def ExecCWL(cmdFile, pathname, keyname, bindex):
     result = {}
     success = 0
-    if ".wtx" in cmdFile:
-       wt = Worktable(cmdFile)
-       wtFile = cmdFile
-       cmdFile = "workflow.cwl"
-       wt.unpack(pathname)
-    else:
-       wt = False
-       cmdFile = scriptFolder + os.sep + cmdFile
+
+    wt = Worktable(cmdFile)
+    wtFile = cmdFile
+    cmdFile = "workflow.cwl"
+    wt.unpack(pathname)
+    cmdDict = {}
+    for i in range(len(wt.fieldnames)):
+        if "I_" in wt.fieldtypes[i]:
+            contents = wt[bindex][i]
+            if "file" in wt.fieldtypes[i]:
+                cmdDict[wt.fieldnames[i]] = {"class": "File", "location": "file://"+contents}
+            else:
+                cmdDict[wt.fieldnames[i]] = contents
+
     try:
-        result = cwlinvoke(pathname, cmdFile,
-                           yamler(open(pathname+"/run.yml", "r"), convert=True))
-        writeyaml(result, pathname+"/.pipelog.txt")
+        result = cwlinvoke(pathname, cmdFile, cmdDict)
+        #writeyaml(result, pathname+"/.pipelog.txt")
     except WorkflowException as werr:
         success = 1
         log = open(pathname+"/.pipelog.txt","a")
         log.write("Workflow Exception: {}\n".format(werr.args))
         log.close()
+        print("Workflow Exception: {}\n".format(werr.args))
+        wt = False
     if wt:
-        index = wt.byref(keyname)
-        wt.update(index,parsecwloutput(pathname, result))
+        wt.update(wt.bybindex(bindex),parsecwloutput(pathname, result))
         wt.save(wtFile)
                 
     return success
 
-def makeyml(pathname, command):
+def makeyml(pathname, command, bindex):
     """
     Generates a yml file to guide execution
 
@@ -127,39 +131,44 @@ def makeyml(pathname, command):
         cmdyml = (re.split(".cwl", command)[0]).strip() + ".yml"
         cmdDict = yamler(open(scriptFolder+"/"+cmdyml, "r"))
 
-    n = wt.byref(pathname)
     for i in range(len(wt.fieldnames)):
         if "I_" in wt.fieldtypes[i]:
-            cmdDict[wt.fieldnames[i]] = wt[n][i]
+            cmdDict[wt.fieldnames[i]] = wt[bindex][i]
 
     writeyaml(cmdDict, pathname+"/runraw.yml")
     ymlvars(pathname+"/runraw.yml", pathname+"/run.yml", coreFolder+"/"+pathname)
     os.remove(pathname+"/runraw.yml")
 
-def clearStack():
-    global procStack, lockStack
-    lockStack = 1
-    for usertoken in procStack:
-        if len(procStack[usertoken])>0:
-            command = procStack[usertoken][0][0]
-            pathname = procStack[usertoken][0][1]
-            procStack[usertoken].pop(0)
-            print(">> "+usertoken+" : "+command+" : "+pathname)
+def clearQueue():
+    global procQueue, lockQueue
+    lockQueue = 1
+    for usertoken in procQueue:
+        if len(procQueue[usertoken])>0:
+            command = procQueue[usertoken][0][0]
+            pathname = procQueue[usertoken][0][1]
+            bindex = procQueue[usertoken][0][2]
+            procQueue[usertoken].pop(0)
+            print(">> "+usertoken+" : "+command+" : "+pathname+" : {}".format(bindex))
             #userstate.append(usertoken, pathname)
             if pathname[0]=='-':
                 keyname = pathname[1:]
-                pathname = targetFolder
+                wtname = re.split(".wtx", os.path.split(command)[1])[0]
+                tstamp = time.strftime("%Y%m%d-%H%M", time.gmtime())
+                pathname = os.path.join(targetFolder, "./log/", wtname+"_"+tstamp+"-"+str(bindex))
+                os.mkdir(pathname)
             else:
                 keyname = pathname
             keyname = pathname
-            makeyml(pathname, command)
-            result = ExecCWL(command, pathname, keyname)
+            if not os.path.isdir(pathname):
+                pathname = os.path.split(pathname)[0] #TODO: check the logic here
+
+            result = ExecCWL(command, pathname, keyname, bindex)
             print("   Result: {}".format(result))
             if result>0:
                userstate.append(usertoken, '{}  <span class="bold"><span class="red">FAILED</span></span>'.format(pathname))
             else:
                userstate.append(usertoken, '{}  <span class="bold"><span class="green">OK</span></span>'.format(pathname))
-    lockStack = 0
+    lockQueue = 0
 
 def myGlob(pathname):
     return glob.glob(pathname)
@@ -177,19 +186,19 @@ class actionServer(action_pb2_grpc.ActionServicer):
         return action_pb2.ExecCWLReply(result=ExecCWL(request.cmdFile, request.pathname))
 
     def push(self, request, context):
-        global lockStack, procStack
-        while lockStack>0:
+        global lockQueue, procQueue
+        while lockQueue>0:
           time.sleep(0.1)
-        if request.usertoken not in procStack:
-            procStack[request.usertoken] = []
-        procStack[request.usertoken].append([request.cmdFile, request.pathname])
+        if request.usertoken not in procQueue:
+            procQueue[request.usertoken] = []
+        procQueue[request.usertoken].append([request.cmdFile, request.pathname, request.bindex])
         return action_pb2.pushReply(mess="OK")
 
     def isFree(self, request, context):
-        global procStack
-        if request.usertoken not in procStack:
-            procStack[request.usertoken] = []
-        if procStack[request.usertoken]==[]:
+        global procQueue
+        if request.usertoken not in procQueue:
+            procQueue[request.usertoken] = []
+        if procQueue[request.usertoken]==[]:
             return action_pb2.isFreeReply(result=True)
         else:
             return action_pb2.isFreeReply(result=False)
@@ -208,7 +217,7 @@ if __name__ == "__main__":
     print("Action server started on port {}".format(portnum))
     try:
         while True:
-            clearStack()
+            clearQueue()
             time.sleep(1)
             sys.stdout.flush()
     except KeyboardInterrupt:

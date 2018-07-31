@@ -30,6 +30,8 @@ userspace = {}
 session = {}
 runStatus = "Nothing"
 
+pathslist = ["pathname", "foldername", "image"] #TODO this needs to be done via metadata!
+
 tasklist = {}
 
 siteroot = "http://127.0.0.1:8888"
@@ -339,7 +341,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
         :param message: WS message string
         :return: None
         """
-        global currentFolder, userspace
+        global currentFolder, userspace, pathslist
 
         userip = self.request.remote_ip
 
@@ -445,16 +447,18 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             lastbindex = -1
             for row in wt:
                 if row[0] != lastbindex:
-                    rowfolder = row[1] if 'path' in wt.fieldtypes[1] else "-{}".format(row[1])
-                    action.push(session[userip],wtfile,rowfolder)
+                    rowfolder = row[1] if wt.fieldnames[1] in pathslist else "-{}".format(row[1])
+                    action.push(session[userip],wtfile,rowfolder,row[0])
                 lastbindex = row[0]
 
         if message[0] == 'p':
             content = message[1:].strip()
-            command = re.split(":",content)[0]
-            path = content[len(command)+1:]
+            tokens = re.split(":",content)
+            command = tokens[0]
+            path = tokens[1]
+            bindex = tokens[2]
             print(command, path)
-            action.push(session[userip],command,path)
+            action.push(session[userip],command,path,int(bindex))
 
         #Run an action
         if message[0] == 'R' or message[0] == 'f':
@@ -489,13 +493,57 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             editor += '</textarea>'
             self.write_message(editor)
 
+        if message[0] == 'C':
+            makescreen = "<h2>Create New Worktable</h2>"
+            if len(message)>1:
+                tokens = re.split(":", message[1:])
+                wtname = os.path.split(tokens[0])[1] 
+                wtname = re.split(".cwl", wtname)[0] + ".wtx"
+                newwt = Worktable()
+                newwt.addfile(tokens[0]) # CWL file
+                newwt.addfile(tokens[1]) # YML file
+                newwt.genfields(path=False) 
+                if len(tokens)>2:
+                    oldwt = Worktable(tokens[2])
+                    newwt.keyoff(oldwt, tokens[3:])
+                newwt.save(os.path.join(targetFolder, wtname))
+                makescreen += "<p>Worktable created</p>"
+            else:
+                makescreen += '<p><form action="javascript:newWorktable()">'
+                makescreen += 'CWL File<br /><input list="cwlglob" id="cwlfile" /><br />'
+                makescreen += '<datalist id="cwlglob">'
+                for filename in glob.glob(os.path.join(targetFolder,"*.cwl")):
+                    makescreen += '<option value="{}" />'.format(filename)
+                makescreen += '</datalist>'
+                makescreen += 'YML File<br /><input list="ymlglob" id="ymlfile" /><br />' 
+                makescreen += '<datalist id="ymlglob">'
+                for filename in glob.glob(os.path.join(targetFolder,"*.yml")):
+                    makescreen += '<option value="{}" />'.format(filename)
+                makescreen += '</datalist>'
+                makescreen += '<input type="checkbox" id="keyoff" value="Keyoff" />Key off table<br />'
+                makescreen += 'Parent table<br /><input list="wtxglob" id="wtxfile" /><br />'
+                makescreen += '<datalist id="wtxglob">'
+                for filename in glob.glob(os.path.join(targetFolder,"*.wtx")):
+                    makescreen += '<option value="{}" />'.format(filename)
+                makescreen += '</datalist>'
+                makescreen += 'Fields to key off (seperate with :)<br/><input type="text" id="keyfields" /><br />'
+                makescreen += '<input type="submit" value="Create" /></form></p>'
+            self.write_message(makescreen)
+
+        if message[0] == 'z':
+            wt = Worktable(message[1:])
+            wt.clearall()
+            wt.save(message[1:])
 
         #Display a results table
         if message[0] == 't':
             wtname = message[1:]
-            wt = Worktable(wtname)
+            try: # TODO Deal with the file lock - transfer to database when live
+                wt = Worktable(wtname)
+            except: 
+                return
             monitor = "<div id='monitor' style='visibility: hidden'>"+wtname+"</div>"
-            tab = '<p><h2>Worktable: {0}</h2><br /><a href="javascript:getPath(\'P{1}\')">Run Entire Table</a></p><p><table id = "Worktable"><tr><th></th>'.format(os.path.split(wtname)[1], wtname)
+            tab = '<p><h2>Worktable: {0}</h2><br /><a href="javascript:getPath(\'P{1}\')">Run Entire Table</a><br /><a href="javascript:getPath(\'z{1}\')">Clear output</a></p><p><table id = "Worktable"><tr><th></th>'.format(os.path.split(wtname)[1], wtname)
             for fname in wt.fieldnames[1:]:
                 tab += "<th>{}</th>".format(fname)
             tab += "</tr><tr><th></th>"
@@ -506,23 +554,28 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             lastbindex = -1
             for row in wt:
                 bindex = row[0]
-                rowfolder = row[1] if 'path' in wt.fieldtypes[1] else "-{}".format(row[1])
+                rowfolder = row[1] if wt.fieldnames[1] in pathslist else "-{}".format(row[1])
                 if bindex==lastbindex:
                     tab += '<tr class="row{}"><th>&nbsp;</th>'.format(alternator)
                 else:
-                    tab +='<tr class="row{}"><th><a href="javascript:getPath(\'p{}:{}\')">run</a></th>'.format(alternator, wtname, rowfolder)
+                    tab +='<tr class="row{}"><th><a href="javascript:getPath(\'p{}:{}:{}\')">run</a></th>'.format(alternator, wtname, rowfolder, bindex)
                 alternator = 1-alternator
                 colid = 1
                 for col in row[1:]:
-                    coltext = col
-                    if wt.fieldtypes[colid][1:] == "_file":
-                        if ".txt" in coltext:
-                            coltext = '<a href="javascript:getPath(\'Y{0}\')">{0}</a>'.format(coltext)
-                        if ".png" in coltext:
-                            coltext = '<img src="{}" />'.format(coltext)
+                    coltext = str(col)
+                    ishtml = False
+                    if ".txt" in coltext:
+                        coltext = '<a href="javascript:getPath(\'Y{0}\')">{0}</a>'.format(coltext)
+                        ishtml = True
+                    if ".png" in coltext:
+                        coltext = '<img height="150px" src="/file/{}" />'.format(coltext)
+                        ishtml = True
                     if bindex==lastbindex and "I_" in wt.fieldtypes[colid]:
                         tab += "<td>&nbsp;</td>"
                     else:
+                        fulltext = coltext #TODO add a nice Javascript tooltip
+                        if not ishtml and len(coltext)>50:
+                            coltext = coltext[0:13]+"...."+coltext[-33:]
                         tab+="<td>{}</td>".format(coltext)
                     colid += 1
                 tab += "</tr>"

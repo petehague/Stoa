@@ -51,6 +51,7 @@ message pushReq {
   string cmdFile = 1;
   string pathname = 2;
   string usertoken = 3;
+  int32 bindex = 4;
 }
 
 message pushReply {

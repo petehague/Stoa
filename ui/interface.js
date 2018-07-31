@@ -6,6 +6,18 @@ function commitFile(filename) {
   ws.send("y"+filename)
 } 
 
+function newWorktable(filename) {
+  cwlname = document.getElementById("cwlfile").value
+  ymlname = document.getElementById("ymlfile").value
+  if (document.getElementById("keyoff").checked==true) {
+    wtxname = document.getElementById("wtxfile").value
+    fieldnames = document.getElementById("keyfields").value
+    ws.send("C"+cwlname+":"+ymlname+":"+wtxname+":"+fieldnames)
+  } else {
+    ws.send("C"+cwlname+":"+ymlname)
+  }
+}
+
 ws.onmessage = function(evt) {
   var msg = evt.data
   if (msg.charAt(0)==":") {

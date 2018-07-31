@@ -13,10 +13,11 @@ else:
 actConnect = grpc.insecure_channel('{}:7000'.format(acthost))
 actions = action_pb2_grpc.ActionStub(actConnect)
 
-def push(usertoken, command, path):
+def push(usertoken, command, path, bindex):
     m = actions.push(action_pb2.pushReq(cmdFile=command,
                                         pathname=path,
-                                        usertoken=usertoken))
+                                        usertoken=usertoken,
+                                        bindex=bindex))
     return m.mess
 
 

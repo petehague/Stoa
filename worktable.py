@@ -75,6 +75,8 @@ class Worktable():
             self.lastfilename = ""
             self.keyref = {}
             self.trow = []
+            self.parenttable = ""
+            self.childtables = []
 
     def __iter__(self):
         return self
@@ -162,6 +164,14 @@ class Worktable():
             # TODO: Change to exception for release
             print("Failed keyref "+key)
             return 0
+
+    def bybindex(self, b):
+        n = 0
+        for row in self:
+            if row[0]==b:
+                break
+            n+=1
+        return n
 
     def cat(self):
         filenames = ["workflow.cwl", "template.yml"]

@@ -17,12 +17,18 @@ def yamler(text, convert=False):
     subtext = []
     ydict = collections.OrderedDict()
     header = ""
+    block = False
     for line in text:
-        if line[0]=="#" or line.strip()=='':
+        if not block and (line[0]=="#" or line.strip()==''):
             continue
         if line[0:2] == '  ':
             subtext+=[line[2:]]
             continue
+        if block:
+            insertnode(ydict, header, subtext)
+            subtext = []
+            header = ""
+            block = False
         if len(subtext)>0:
             #ydict[header] = yamler(subtext)
             insertnode(ydict, header, yamler(subtext))
@@ -31,6 +37,10 @@ def yamler(text, convert=False):
         tokens = re.split(":", line.strip()) + ['','']
         header = tokens[0]
         value = tokens[1].strip()
+        if value=="|":
+            block = True
+            subtext += ["|"]
+            continue
         if convert:
             if value.isdigit():
                value = int(value)
@@ -39,12 +49,16 @@ def yamler(text, convert=False):
                     value = float(value)
         insertnode(ydict, header, value)
     if len(subtext)>0:
-        insertnode(ydict,header,yamler(subtext))
+        if block:
+            insertnode(ydict,header,subtext)
+        else:
+            insertnode(ydict,header,yamler(subtext))
     #ydict.pop('',None)
     return ydict
 
 def makeyaml(ydict, indent=""):
     lastkey = ""
+    block = False
     for key in ydict:
         entry = ydict[key]
         if type(entry) is not list:
@@ -57,8 +71,14 @@ def makeyaml(ydict, indent=""):
                     yield line 
                 lastkey = ""
             else:
-                yield indent+"{}: {}\n".format(key, item)
+                if block:
+                   yield indent+"  {}".format(item)
+                else:
+                   yield indent+"{}: {}\n".format(key, item)
+                if item.strip()=="|":
+                   block = True
                 lastkey = key
+        block = False
 
 def writeyaml(ydict, filename, append=False):
     f = open(filename, "a" if append else "w")
