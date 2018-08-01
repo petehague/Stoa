@@ -255,6 +255,19 @@ table.wttab {
 td.wtcell {
    align-content: center;
    width: 200px;
-   height: 200px;
+   height: 170px;
    border: 0px;
 }
+
+td.spacecell {
+   width: 20px;
+   height: 170px;
+   border: 0px;
+}
+
+td.linecell {
+   width: 100px;
+   height: 170px;
+   border: 0px;
+}
+

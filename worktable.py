@@ -75,7 +75,7 @@ class Worktable():
             self.lastfilename = ""
             self.keyref = {}
             self.trow = []
-            self.parenttable = ""
+            self.parenttables = []
             self.childtables = []
 
     def __iter__(self):
@@ -218,6 +218,11 @@ class Worktable():
                     if cwlfile not in ["workflow.cwl", "template.yml", "table.txt"]:
                         self.otherfiles.append(cwlfile)
             header = 0
+            links = wtab.open("links.txt", "r")
+            line = (links.readline()[:-1]).decode("utf8")
+            self.parenttables = [] if line=='' else re.split(",",line) 
+            line = (links.readline()[:-1]).decode("utf8")
+            self.childtables = [] if line=='' else re.split(",",line)
             for line in wtab.open("table.txt","r"):
                 line = line.decode("utf8")
                 line = line.strip()
@@ -268,6 +273,10 @@ class Worktable():
             for row in self.tabdata:
                 tabfile.write(' '.join(row)+"\n")
             tabfile.close()
+            links = open(tempdir+"/links.txt", "w")
+            links.write(','.join(self.parenttables)+"\n")
+            links.write(','.join(self.childtables)+"\n")
+            links.close()
             for contentfile in glob.glob(tempdir+"/*"):
                 wtab.write(contentfile, os.path.split(contentfile)[1])
             os.system("rm -rf "+tempdir)
@@ -347,6 +356,9 @@ class Worktable():
     def keyoff(self, other, keyfield):
         keyindex = []
         selfindex = []
+        self.parenttables = [os.path.split(other.lastfilename)[1]]
+        other.childtables.append(self.lastfilename)
+        other.save(other.lastfilename)
         for i in range(len(other.fieldnames)):
             if other.fieldnames[i] in keyfield:
                 keyindex.append(i)
@@ -416,6 +428,50 @@ class Worktable():
         for row in self:
             print(linef.format(*row))
 
+def getnetwork(pathlist):
+    filelist = []
+    for path in pathlist:
+        filelist.append(os.path.split(path)[1])
+        targetfolder = os.path.split(path)[0]
+    rank = dict.fromkeys(filelist, 0)
+    parents = dict.fromkeys(filelist, 0)
+    children = dict.fromkeys(filelist, 0)
+    for filename in filelist:
+        wt = Worktable(os.path.join(targetfolder, filename))
+        parents[filename] = wt.parenttables
+        children[filename] = wt.childtables
+
+    sortree = []
+    for filename in filelist:
+        if len(parents[filename])==0:
+            sortree.insert(0, filename)
+            continue
+        index = 0
+        pars = []
+        for name in sortree:
+            index += 1
+            if name in parents[filename]:
+               pars.append(name)
+            if len(pars)==len(parents[filename]):
+               break
+        sortree.insert(index, filename)
+
+    for filename in sortree:
+        if len(parents[filename])>0:
+            for parent in parents[filename]:
+                rank[filename] = max(rank[filename], rank[parent])
+        for child in children[filename]:
+            rank[child] = max(rank[child], rank[filename]+1)
+
+    tree = []
+    for i in range(1+max(rank.values())):
+        level = []
+        for tab in rank:
+            if rank[tab]==i:
+                level.append(tab)
+        tree.append(level)
+    return tree, parents, children
+
 if __name__=="__main__":
     import sys    
     if len(sys.argv)>1:
@@ -458,7 +514,11 @@ if __name__=="__main__":
         print("Contents:")
         for filename in wt.cat():
           print("  "+filename)
+        print("\nParents: "+", ".join(wt.parenttables))
+        print("Children: "+", ".join(wt.childtables))
         print("\n")
+        print(wt.parenttables)
+        print(wt.childtables)
         wt.show()
 
     if cmd=="clear":
@@ -483,5 +543,11 @@ if __name__=="__main__":
     if cmd=="view":
         wt = Worktable(sys.argv[2])
         wt.view(sys.argv[3])
+
+    if cmd=="network":
+        a,b,c = getnetwork(sys.argv[2:])
+        print(a)
+        print(b)
+        print(c)
 
 

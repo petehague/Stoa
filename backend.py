@@ -15,7 +15,7 @@ from imp import load_source
 from fnmatch import fnmatch
 from astropy.table import Table
 
-from worktable import Worktable
+from worktable import Worktable, getnetwork
 
 import userstate_interface as userstate
 import action_interface as action
@@ -105,20 +105,42 @@ def projectInfo():
                   Browse all folders</a><br /><a href="javascript:getPath(\'C\')">\
                   Create new worktable</a></p>'
 
-    outstring += '<p><table class="wttab"><tr>'
-    wtcount = 0
-    for wtfile in glob.glob(targetFolder+"/*.wtx"):
-        outstring += '<td class="wtcell">'
-        outstring += '<center><a href="javascript:getPath(\'t{}\')">'.format(wtfile)
-        outstring += '<img width="75px" height="75px" src="static/page.svg" /><br />'
-        outstring+= '{}'.format(os.path.split(wtfile)[1])
-        outstring += '</a></center></td>'
-        wtcount += 1
-        if wtcount == 4:
-            outstring+="<tr></tr>"
-            wtcount = 0
-    outstring += '</tr></table></p>'
-
+    outstring += '<p><table class="wttab">'
+    wtmap, parents, children = getnetwork(glob.glob(os.path.join(targetFolder, "*.wtx")))
+    nrows = 0
+    for n in range(len(wtmap)):
+        nrows = max(len(wtmap[n]), nrows)
+    for r in range(nrows):
+        cells = ""
+        for c in range(len(wtmap)):
+            if len(wtmap[c])>r:
+                if c>0:
+                   for i in range(len(wtmap[c-1])):
+                       if wtmap[c-1][i] in parents[wtmap[c][r]]:
+                          break
+                   linkbar = '<img src="static/linkbar{}.svg" />'.format(i)
+                   cells += '<td class="spacecell">{}</td>'.format(linkbar)
+                wtfile = wtmap[c][r]
+                wtpath = os.path.join(targetFolder, wtfile)
+                cells += '<td class="wtcell">'
+                cells += '<center><a href="javascript:getPath(\'t{}\')">'.format(wtpath)
+                cells += '<img width="75px" height="75px" src="static/page.svg" /><br />'
+                cells += '{}'.format(wtfile)
+                cells += '</a></center></td>'        
+            else:
+                if c>0:
+                    cells += '<td class="spacecell">&nbsp;</td>'
+                cells += '<td class="wtcell">&nbsp;</td>'
+            if c<(len(wtmap)-1):
+                linkbar = '<img src="static/linkbar{}.svg" />'.format(r)
+                if len(wtmap[c])>r:
+                    if len(children[wtmap[c][r]])==0:
+                        linkbar = '&nbsp;'
+                cells += '<td class="spacecell">{}</td>'.format(linkbar if len(wtmap[c])>r else '&nbsp;')
+                cells += '<td class="linecell">{}</td>'.format('B' if len(wtmap[c+1])>r else '&nbsp;')
+        outstring += '<tr>'+cells+'</tr>'
+        #print(cells+"\n\n")
+    outstring += '</table></p>'
     return outstring
 
 def setTarget(t):
@@ -500,6 +522,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                 wtname = os.path.split(tokens[0])[1] 
                 wtname = re.split(".cwl", wtname)[0] + ".wtx"
                 newwt = Worktable()
+                newwt.lastfilename = wtname # TODO: Better workaround
                 newwt.addfile(tokens[0]) # CWL file
                 newwt.addfile(tokens[1]) # YML file
                 newwt.genfields(path=False) 
