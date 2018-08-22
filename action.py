@@ -55,36 +55,30 @@ def cwlinvoke(pathname, taskfile, params):
     print(result)
     return result
 
-def parsecwloutput(pathname, result, l=False):
+def parsecwloutput(pathname, result, fields, l=False):
     outlist = []
-    for output in result:
-        if l:
-            outobj = output
-        else:
-            if type(result[output]) is list:
-                outlist.append(parsecwloutput(pathname,result[output], l=True))
-                continue
-            outobj = result[output]
-        if type(outobj) is dict:
-            if outobj['basename']=='list.txt':
-                f = open(outobj['location'][7:], "r")
-                data = []
-                for line in f:
-                    data.append(line.strip())
-                f.close()
-                data = ['-'] if data==[] else data
-                outlist.append(data)
-                continue
-            if outobj['class']=='File':
-                outlist.append(os.path.join(pathname,outobj['basename']))
-                shutil.copyfile(outobj['location'][7:], 
-                                os.path.join(pathname, outobj['basename']))
-                # TODO add a contingence for not file:// URLS (not sure why this would happen though)
-        else:
-            outlist.append(outobj)
+    for fieldname in fields:
+       if fieldname in result:
+            outobj = result[fieldname]
+            if type(outobj) is dict:           
+                if outobj['basename']=='list.txt':
+                    f = open(outobj['location'][7:], "r")
+                    data = []
+                    for line in f:
+                        data.append(line.strip())
+                    f.close()
+                    data = ['-'] if data==[] else data
+                    outlist.append(data)
+                    continue
+                if outobj['class']=='File':
+                    outlist.append(os.path.join(pathname,outobj['basename']))
+                    shutil.copyfile(outobj['location'][7:], 
+                                    os.path.join(pathname, outobj['basename']))
+            else:
+               outlist.append(outobj)
     return outlist
 
-def ExecCWL(cmdFile, pathname, keyname, bindex):
+def ExecCWL(cmdFile, pathname, bindex):
     result = {}
     success = 0
 
@@ -112,7 +106,7 @@ def ExecCWL(cmdFile, pathname, keyname, bindex):
         print("Workflow Exception: {}\n".format(werr.args))
         wt = False
     if wt:
-        wt.update(wt.bybindex(bindex),parsecwloutput(pathname, result))
+        wt.update(wt.bybindex(bindex),parsecwloutput(pathname, result, wt.fieldnames))
         wt.save(wtFile)
                 
     return success
@@ -149,20 +143,14 @@ def clearQueue():
             bindex = procQueue[usertoken][0][2]
             procQueue[usertoken].pop(0)
             print(">> "+usertoken+" : "+command+" : "+pathname+" : {}".format(bindex))
-            #userstate.append(usertoken, pathname)
-            if pathname[0]=='-':
-                keyname = pathname[1:]
-                wtname = re.split(".wtx", os.path.split(command)[1])[0]
-                tstamp = time.strftime("%Y%m%d-%H%M", time.gmtime())
-                pathname = os.path.join(targetFolder, "./log/", wtname+"_"+tstamp+"-"+str(bindex))
+            pathname = pathname[1:]
+            wtname = re.split(".wtx", os.path.split(command)[1])[0]
+            tstamp = time.strftime("%Y%m%d-%H%M", time.gmtime())
+            pathname = os.path.join(targetFolder, "./log/", wtname+"_"+tstamp+"-"+str(bindex))
+            if not os.path.exists(pathname):
                 os.mkdir(pathname)
-            else:
-                keyname = pathname
-            keyname = pathname
-            if not os.path.isdir(pathname):
-                pathname = os.path.split(pathname)[0] #TODO: check the logic here
 
-            result = ExecCWL(command, pathname, keyname, bindex)
+            result = ExecCWL(command, pathname, bindex)
             print("   Result: {}".format(result))
             if result>0:
                userstate.append(usertoken, '{}  <span class="bold"><span class="red">FAILED</span></span>'.format(pathname))

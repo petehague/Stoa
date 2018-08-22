@@ -14,8 +14,9 @@ from yml import yamler
 from imp import load_source
 from fnmatch import fnmatch
 from astropy.table import Table
+import numpy as np
 
-from worktable import Worktable, getnetwork
+from worktable import Worktable, getnetwork, prune
 
 import userstate_interface as userstate
 import action_interface as action
@@ -93,6 +94,56 @@ def startBackend():
     started = True
     print("Backend started")
 
+def svgbar(filename, n, arrow=False):
+    os.system("cp ui/smallheader.svg "+filename) 
+
+    cols = ["red", "green", "blue", "orange"]
+    
+    svg = open(filename, "a")
+    if arrow:
+        svg.write('<polygon points="10,79 25,85 10,91" style="fill:{0}; stroke:{0}" />'.format(cols[n]))
+        svg.write('<rect x="0" y="82" width="10" height="6" style="fill:{0}; stroke:{0}" />'.format(cols[n]))
+    else:
+        svg.write('<rect x="0" y="82" width="25" height="6" style="fill:{0}; stroke:{0}" />'.format(cols[n]))
+    svg.write('</svg>')
+    svg.close()
+
+def svgline(filename, n, lmap):
+    os.system("cp ui/header.svg "+filename)
+
+    yoffset = n*170
+    svg = open(filename, "a")
+    cols = ["red", "green", "blue", "orange"]
+
+    for start in range(len(lmap)):
+        for finish in lmap[start]:
+            svg.write('<polygon points="')
+            a = 82+start*170
+            b = 82+finish*170
+            if a==b:
+                thiccor = 0
+            else:
+                angle = np.fabs(np.arctan2(b,a))
+                thiccor = 6*np.sin(angle)
+            if b>a:
+              svg.write('0,{2} {0},{2} 100,{3} 100,{4} {1},{4} 0,{5}'.format(thiccor,
+                                                                             100-thiccor,
+                                                                             a-yoffset, 
+                                                                             b-yoffset, 
+                                                                             6+b-yoffset, 
+                                                                             6+a-yoffset))
+            else:
+              svg.write('0,{2} {1},{3} 100,{3} 100,{4} {0},{5} 0,{5}'.format(thiccor,
+                                                                             100-thiccor,
+                                                                             a-yoffset, 
+                                                                             b-yoffset, 
+                                                                             6+b-yoffset, 
+                                                                             6+a-yoffset))
+            svg.write('" style="fill:{0}; stroke:{0}" />'.format(cols[start]))
+  
+    svg.write("</svg>")
+    svg.close()
+
 
 def projectInfo():
     """
@@ -108,6 +159,7 @@ def projectInfo():
     outstring += '<p><table class="wttab">'
     wtmap, parents, children = getnetwork(glob.glob(os.path.join(targetFolder, "*.wtx")))
     nrows = 0
+    irn = np.random.randint(9999)
     for n in range(len(wtmap)):
         nrows = max(len(wtmap[n]), nrows)
     for r in range(nrows):
@@ -118,26 +170,42 @@ def projectInfo():
                    for i in range(len(wtmap[c-1])):
                        if wtmap[c-1][i] in parents[wtmap[c][r]]:
                           break
-                   linkbar = '<img src="static/linkbar{}.svg" />'.format(i)
+                   arrowfile = os.path.join(targetFolder,"linkarrow_{}_{}_{}.svg".format(c,i,irn))
+                   svgbar(arrowfile, i, arrow=True)
+                   linkbar = '<img width="25" src="/file/{}" />'.format(arrowfile)
                    cells += '<td class="spacecell">{}</td>'.format(linkbar)
                 wtfile = wtmap[c][r]
                 wtpath = os.path.join(targetFolder, wtfile)
                 cells += '<td class="wtcell">'
                 cells += '<center><a href="javascript:getPath(\'t{}\')">'.format(wtpath)
                 cells += '<img width="75px" height="75px" src="static/page.svg" /><br />'
-                cells += '{}'.format(wtfile)
+                cells += '<p class="wttext">{}</p>'.format(wtfile)
                 cells += '</a></center></td>'        
             else:
                 if c>0:
                     cells += '<td class="spacecell">&nbsp;</td>'
                 cells += '<td class="wtcell">&nbsp;</td>'
             if c<(len(wtmap)-1):
-                linkbar = '<img src="static/linkbar{}.svg" />'.format(r)
+                barfile = os.path.join(targetFolder,"linkbar_{}_{}_{}.svg".format(c,r,irn))
+                svgbar(barfile, r)
+                linkbar = '<img class="lineel" src="/file/{}" />'.format(barfile)
                 if len(wtmap[c])>r:
                     if len(children[wtmap[c][r]])==0:
                         linkbar = '&nbsp;'
-                cells += '<td class="spacecell">{}</td>'.format(linkbar if len(wtmap[c])>r else '&nbsp;')
-                cells += '<td class="linecell">{}</td>'.format('B' if len(wtmap[c+1])>r else '&nbsp;')
+                cells += '<td class="spacecell">{}</td>'.format(linkbar if len(wtmap[c])>r else '')
+                svgfilename = os.path.join(targetFolder,"line_{}_{}_{}.svg".format(c,r,irn))
+                lmap = []
+                for parent in wtmap[c]:
+                  lmaplist = []
+                  index = 0
+                  for child in wtmap[c+1]:
+                    if child in children[parent]:
+                      lmaplist.append(index) 
+                    index += 1
+                  lmap.append(lmaplist)
+                svgline(svgfilename, r, lmap)
+                linkline = '<img class="lineel" src="/file/{}" />'.format(svgfilename)
+                cells += '<td class="linecell">{}</td>'.format(linkline)
         outstring += '<tr>'+cells+'</tr>'
         #print(cells+"\n\n")
     outstring += '</table></p>'
@@ -469,8 +537,8 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             lastbindex = -1
             for row in wt:
                 if row[0] != lastbindex:
-                    rowfolder = row[1] if wt.fieldnames[1] in pathslist else "-{}".format(row[1])
-                    action.push(session[userip],wtfile,rowfolder,row[0])
+                    rowfolder = row[1]
+                    action.push(session[userip],wtfile,str(rowfolder),row[0])
                 lastbindex = row[0]
 
         if message[0] == 'p':
@@ -557,6 +625,23 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             wt = Worktable(message[1:])
             wt.clearall()
             wt.save(message[1:])
+  
+        if message[0] == 'k':
+            wt = Worktable(message[1:])
+            parents = wt.parenttables
+            children = wt.childtables
+            for p in parents:
+                pwt = Worktable(os.path.join(targetFolder,p))
+                if p in wt.childtables:
+                    wt.childtables.remove(message[1:])
+                pwt.save(os.path.join(targetFolder,p))
+            for c in children:
+                cwt = Worktable(os.path.join(targetFolder,c))
+                if c in wt.parenttables:
+                    wt.parenttables.remove(message[1:])
+                cwt.save(os.path.join(targetFolder,c))
+            os.remove(message[1:])          
+            self.write_message('<script  type="text/javascript">getPath(\'H\')</script>')
 
         #Display a results table
         if message[0] == 't':
@@ -566,7 +651,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             except: 
                 return
             monitor = "<div id='monitor' style='visibility: hidden'>"+wtname+"</div>"
-            tab = '<p><h2>Worktable: {0}</h2><br /><a href="javascript:getPath(\'P{1}\')">Run Entire Table</a><br /><a href="javascript:getPath(\'z{1}\')">Clear output</a></p><p><table id = "Worktable"><tr><th></th>'.format(os.path.split(wtname)[1], wtname)
+            tab = '<p><h2>Worktable: {0}</h2><br /><a href="javascript:getPath(\'P{1}\')">Run Entire Table</a><br /><br /><a href="javascript:getPath(\'z{1}\')">Clear output</a><br /><a href="javascript:getPath(\'k{1}\')">Delete Table</a></p><p><table id = "Worktable"><tr><th></th>'.format(os.path.split(wtname)[1], wtname)
             for fname in wt.fieldnames[1:]:
                 tab += "<th>{}</th>".format(fname)
             tab += "</tr><tr><th></th>"
@@ -577,7 +662,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             lastbindex = -1
             for row in wt:
                 bindex = row[0]
-                rowfolder = row[1] if wt.fieldnames[1] in pathslist else "-{}".format(row[1])
+                rowfolder = row[1]
                 if bindex==lastbindex:
                     tab += '<tr class="row{}"><th>&nbsp;</th>'.format(alternator)
                 else:
@@ -603,8 +688,23 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                     colid += 1
                 tab += "</tr>"
                 lastbindex = bindex
+            tab+='<tr><td><a href="javascript:addRow(\'{}\')">+</a></td>'.format(wtname)
+            index = 1
+            for ftype in wt.fieldtypes[1:]:
+                if "I" in ftype:
+                    tab += '<td><input type="text" class="newrow" id="{}" /></td>'.format("new"+wt.fieldnames[index])
+                else:
+                    tab += '<td>&nbsp;</td>'
+                index += 1
             tab += "</table></p>"
             self.write_message(monitor+tab)
+
+        if message[0] == "&":
+            tokens = re.split(":",message[1:])
+            wt = Worktable(tokens[0])
+            wt.addrow(tokens[1:])
+            wt.save(tokens[0])
+            self.write_message('<script  type="text/javascript">getPath(\'t{}\')</script>'.format(tokens[0]))
 
         #Control file editing console
         if message[0] == 'S':

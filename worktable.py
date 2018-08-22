@@ -6,6 +6,7 @@ import re, os, io, glob
 from random import randrange
 import tempfile
 import collections
+from astropy.table import Table
 
 '''
   The worktable library
@@ -67,8 +68,8 @@ class Worktable():
             self.template = {}
             self.tasks = []
             self.otherfiles = []
-            self.fieldnames = []
-            self.fieldtypes = []
+            self.fieldnames = ['__bindex__']
+            self.fieldtypes = ['K_int']
             self.tabdata = []
             self.tabptr = 0
             self.track = []
@@ -129,7 +130,6 @@ class Worktable():
     def update(self, key, data, clear=True):
         stdata = self.tabdata[key]
         bindex = stdata[0]
-        print(key, data, "\n")
         if len(data)==0:
             return
         if clear:
@@ -375,6 +375,52 @@ class Worktable():
                 data[selfindex[n]-1] = row[keyindex[n]]
             self.addrow(data)
 
+    def merge(self, other1, other2, key):
+        self.parenttables = [os.path.split(other1.lastfilename)[1],
+                             os.path.split(other2.lastfilename)[1]]
+        other1.childtables.append(self.lastfilename) 
+        other1.save(other1.lastfilename)
+        other2.childtables.append(self.lastfilename) 
+        other2.save(other2.lastfilename)
+        self.tabdata = []     
+   
+        key = re.split(":", key)
+
+        kindex1 = []
+        kindex2 = []
+        n = 1
+        for field in other1.fieldnames[1:]:
+            self.fieldnames.append(field)
+            self.fieldtypes.append("K_"+other1.fieldtypes[n][2:])
+            if other1.fieldnames[n] in key:
+                kindex1.append(n-1)
+            n+=1
+        n = 1
+        for field in other2.fieldnames[1:]:
+            if other2.fieldnames[n] in key:
+                kindex2.append(n-1) 
+            else: 
+               self.fieldnames.append(field)
+               self.fieldtypes.append("K_"+other2.fieldtypes[n][2:])
+            n+=1      
+        n = 0 
+        self.buildtrow()
+        lastbindex = 0
+        for row in other1.tabdata:
+            orow = other2.tabdata[n][1:]
+            lastbindex = row[0]
+            row = row[1:]
+            while [row[i] for i in kindex1] == [orow[i] for i in kindex2]:
+               for i in range(len(kindex2)):
+                  del orow[kindex2[i]-i] # Adjustment to account for already deleted columns
+               newrow = row + orow
+               self.addrow(newrow)
+               n+=1
+               if n==len(other2.tabdata):
+                   n-=1
+                   break
+               orow = other2.tabdata[n][1:]
+
     def clearall(self):
         for i in range(len(self.fieldtypes)):
             if 'O_' in self.fieldtypes[i]:
@@ -428,7 +474,23 @@ class Worktable():
         for row in self:
             print(linef.format(*row))
 
+def prune(wtname, path):
+    wt = Worktable(wtname)
+    others = glob.glob(os.path.join(path, "*.wtx"))
+    filelist = []
+    for f in others:
+        filelist.append(os.path.split(f)[1])
+    for p in wt.parenttables:
+        if p not in filelist:
+           wt.parenttables.remove(p)
+    for c in wt.childtables:
+        if c not in filelist:
+           wt.childtables.remove(c)
+    wt.save(wtname)
+
 def getnetwork(pathlist):
+    if pathlist==[]:
+        return [], {}, {}
     filelist = []
     for path in pathlist:
         filelist.append(os.path.split(path)[1])
@@ -437,11 +499,13 @@ def getnetwork(pathlist):
     parents = dict.fromkeys(filelist, 0)
     children = dict.fromkeys(filelist, 0)
     for filename in filelist:
+        prune(os.path.join(targetfolder, filename), targetfolder)
         wt = Worktable(os.path.join(targetfolder, filename))
         parents[filename] = wt.parenttables
         children[filename] = wt.childtables
 
     sortree = []
+    filelist.sort()
     for filename in filelist:
         if len(parents[filename])==0:
             sortree.insert(0, filename)
@@ -517,8 +581,6 @@ if __name__=="__main__":
         print("\nParents: "+", ".join(wt.parenttables))
         print("Children: "+", ".join(wt.childtables))
         print("\n")
-        print(wt.parenttables)
-        print(wt.childtables)
         wt.show()
 
     if cmd=="clear":
@@ -549,5 +611,22 @@ if __name__=="__main__":
         print(a)
         print(b)
         print(c)
+
+    if cmd=="merge":
+        tabname = re.split(".wtx",os.path.split(sys.argv[2])[1])[0]
+        tabname += "_" + re.split(".wtx",os.path.split(sys.argv[3])[1])[0]
+        tabname += ".wtx"
+
+        wt = Worktable()
+        wt.lastfilename = tabname
+        other1 = Worktable(sys.argv[2])
+        other2 = Worktable(sys.argv[3])
+        wt.merge(other1, other2, ":".join(sys.argv[4:]))
+        wt.template = {}
+        for field in wt.fieldnames:
+            wt.template[field] = "-"
+    
+        print(tabname)
+        wt.save(tabname)      
 
 

@@ -18,6 +18,15 @@ function newWorktable(filename) {
   }
 }
 
+function addRow(tabname) {
+  var fields = document.getElementsByClassName("newrow")
+  
+  for (var i=0;i<fields.length;i++) {
+    tabname += ":" + fields[i].value
+  }
+  ws.send("&"+tabname)
+}
+
 ws.onmessage = function(evt) {
   var msg = evt.data
   if (msg.charAt(0)==":") {
