@@ -18,6 +18,15 @@ body {
     position: absolute;
 }
 
+img.logo {
+   position: absolute;
+   top: 4px;
+   left: 40px;
+   width: 40px;
+   height: 40px;
+   z-index: 10
+}
+
 h1 {
     color: #ffffff;
     font-family: sans-serif;
