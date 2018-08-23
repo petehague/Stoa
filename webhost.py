@@ -41,12 +41,17 @@ class MainHandler(tornado.web.RequestHandler):
                         hostname=thishost,
                         action=actionhtml)
         else:
+            backend.siteroot = "http://{}:{}".format(self.request.host, portnum)
+            wsroot = "ws://{}:{}/ws".format(self.request.host, portnum)
+            thishost = backend.siteroot.split(':')[1][2:]
             self.render(backend.webPath+"ui/login.html", websocketRoot=wsroot, hostname=thishost)
 
 
 class Authenticate(tornado.web.RequestHandler):
     def get(self):
-        # print(self.get_argument("blah"))
+        backend.siteroot = "http://{}:{}".format(self.request.host, portnum)
+        wsroot = "ws://{}:{}/ws".format(self.request.host, portnum)
+        thishost = backend.siteroot.split(':')[1][2:]
         self.render(backend.webPath+"ui/login.html", websocketRoot=wsroot, hostname=thishost)
 
 
