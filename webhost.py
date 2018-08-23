@@ -7,6 +7,7 @@ import os
 import sys
 import socket
 import backend
+import re
 
 if len(sys.argv) > 2:
     portnum = int(sys.argv[2])
@@ -25,6 +26,7 @@ ioloophandle = ''
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
+        global thishost, wsroot
         user = self.request.remote_ip
         getargs = self.request.arguments
         backend.startBackend()
@@ -41,16 +43,19 @@ class MainHandler(tornado.web.RequestHandler):
                         hostname=thishost,
                         action=actionhtml)
         else:
-            backend.siteroot = "http://{}:{}".format(self.request.host, portnum)
-            wsroot = "ws://{}:{}/ws".format(self.request.host, portnum)
+            hostname = re.split(":", self.request.host)[0]
+            backend.siteroot = "http://{}:{}".format(hostname, portnum)
+            wsroot = "ws://{}:{}/ws".format(hostname, portnum)
             thishost = backend.siteroot.split(':')[1][2:]
             self.render(backend.webPath+"ui/login.html", websocketRoot=wsroot, hostname=thishost)
 
 
 class Authenticate(tornado.web.RequestHandler):
     def get(self):
-        backend.siteroot = "http://{}:{}".format(self.request.host, portnum)
-        wsroot = "ws://{}:{}/ws".format(self.request.host, portnum)
+        global thishost, wsroot
+        hostname = re.split(":", self.request.host)[0]
+        backend.siteroot = "http://{}:{}".format(hostname, portnum)
+        wsroot = "ws://{}:{}/ws".format(hostname, portnum)
         thishost = backend.siteroot.split(':')[1][2:]
         self.render(backend.webPath+"ui/login.html", websocketRoot=wsroot, hostname=thishost)
 
