@@ -5,6 +5,8 @@ from zipfile import ZipFile
 import re, os, io, glob
 from random import randrange
 import tempfile
+import collections
+from astropy.table import Table
 
 '''
   The worktable library
@@ -36,6 +38,7 @@ typemap = {'int': 'int',
            'float': 'float',
            'double': 'float',
            'string': 'str',
+           'stdout': 'str',
            'File': 'file'}
 
 #Tracking codes
@@ -65,14 +68,16 @@ class Worktable():
             self.template = {}
             self.tasks = []
             self.otherfiles = []
-            self.fieldnames = []
-            self.fieldtypes = []
+            self.fieldnames = ['__bindex__']
+            self.fieldtypes = ['K_int']
             self.tabdata = []
             self.tabptr = 0
             self.track = []
             self.lastfilename = ""
             self.keyref = {}
             self.trow = []
+            self.parenttables = []
+            self.childtables = []
 
     def __iter__(self):
         return self
@@ -122,17 +127,35 @@ class Worktable():
         self.track[key] = TR_PENDING
         self.keyref[data[0]] = key
 
-    def update(self, key, data):
+    def update(self, key, data, clear=True):
         stdata = self.tabdata[key]
+        bindex = stdata[0]
+        if len(data)==0:
+            return
+        if clear:
+            for b in range(key, len(self.tabdata)):
+                if self.tabdata[b][0] != bindex:
+                    break
+            if b>key+1:
+                self.tabdata = self.tabdata[:key] + self.tabdata[b:]
+                self.track = self.track[:key] + self.track[key:]
         for n in range(len(self.fieldtypes)):
-           if 'O' in self.fieldtypes[n]:
-               break
-        for datum in data:
             if 'O' in self.fieldtypes[n]:
-                stdata[n] = str(datum)
-            n+=1
-        self.tabdata[key] = stdata   
-        self.track[key] = TR_COMPLETE    
+                break
+        if type(data[0]) is list:
+            tabinsert = [stdata[:n] + ['-']*(len(self.fieldtypes)-n)]
+            tabinsert *= len(data[0])
+            self.tabdata = self.tabdata[:key] + tabinsert + self.tabdata[key+1:]
+            self.track = self.track[:key] + [TR_PENDING]*len(tabinsert) + self.track[key+1:]
+            for i in range(len(data[0])):
+                self.update(key+i, [x[i] for x in data], clear=False) 
+        else:
+            for datum in data:
+                if 'O' in self.fieldtypes[n]:
+                    stdata[n] = str(datum)
+                n+=1
+            self.tabdata[key] = stdata.copy()   
+            self.track[key] = TR_COMPLETE    
 
     def byref(self, key):
         if key in self.keyref:
@@ -142,6 +165,14 @@ class Worktable():
             print("Failed keyref "+key)
             return 0
 
+    def bybindex(self, b):
+        n = 0
+        for row in self:
+            if row[0]==b:
+                break
+            n+=1
+        return n
+
     def cat(self):
         filenames = ["workflow.cwl", "template.yml"]
         for task in self.tasks:
@@ -149,6 +180,12 @@ class Worktable():
         filenames += self.otherfiles
         for fn in filenames:
             yield fn
+
+    def view(self, filename):
+        with ZipFile(self.lastfilename, "r") as wtab:
+            targetfile = wtab.open(filename, "r") 
+            for line in targetfile:
+                print(line.decode('utf8')[:-1])
 
     def buildtrow(self):
         self.trow = []
@@ -181,9 +218,16 @@ class Worktable():
                     if cwlfile not in ["workflow.cwl", "template.yml", "table.txt"]:
                         self.otherfiles.append(cwlfile)
             header = 0
+            links = wtab.open("links.txt", "r")
+            line = (links.readline()[:-1]).decode("utf8")
+            self.parenttables = [] if line=='' else re.split(",",line) 
+            line = (links.readline()[:-1]).decode("utf8")
+            self.childtables = [] if line=='' else re.split(",",line)
             for line in wtab.open("table.txt","r"):
                 line = line.decode("utf8")
                 line = line.strip()
+                if not line:
+                    continue
                 if line[0] == '#':
                     continue
                 if header==2:
@@ -229,6 +273,10 @@ class Worktable():
             for row in self.tabdata:
                 tabfile.write(' '.join(row)+"\n")
             tabfile.close()
+            links = open(tempdir+"/links.txt", "w")
+            links.write(','.join(self.parenttables)+"\n")
+            links.write(','.join(self.childtables)+"\n")
+            links.close()
             for contentfile in glob.glob(tempdir+"/*"):
                 wtab.write(contentfile, os.path.split(contentfile)[1])
             os.system("rm -rf "+tempdir)
@@ -269,11 +317,13 @@ class Worktable():
             self.fieldtypes.append("I_str")
             self.trow.append("")
         for field in inps:
+            if 'stoafolder' in inps:
+                continue
             typestr = "I_"
             if type(inps[field])==str:
-               rawtype = inps[field]
+                rawtype = inps[field]
             else:
-               rawtype = inps[field]['type']
+                rawtype = inps[field]['type']
             if rawtype in typemap:
                 typestr += typemap[rawtype]
             else:
@@ -289,7 +339,9 @@ class Worktable():
             if type(outs[field])==str:
                rawtype = outs[field]
             else:
-               rawtype = outs[field]['type']
+                rawtype = outs[field]['type']
+            if type(rawtype) is collections.OrderedDict:
+                rawtype = rawtype["items"]
             if rawtype in typemap:
                 typestr += typemap[rawtype]
             else:
@@ -302,29 +354,93 @@ class Worktable():
                 self.trow.append(0)
 
     def keyoff(self, other, keyfield):
-        keytype = ""
+        keyindex = []
+        selfindex = []
+        self.parenttables = [os.path.split(other.lastfilename)[1]]
+        other.childtables.append(self.lastfilename)
+        other.save(other.lastfilename)
         for i in range(len(other.fieldnames)):
-            if other.fieldnames[i] == keyfield:
-                keytype = other.fieldtypes[i]
-                keyindex = i
-        if keytype=="":
-            print("No key field "+keyfield)
+            if other.fieldnames[i] in keyfield:
+                keyindex.append(i)
+        for i in range(len(self.fieldnames)):
+            if self.fieldnames[i] in keyfield:
+                selfindex.append(i)
+        if keyindex==[]:
+            print("No key fields "+",".join(keyfield))
             return False
-        if keyfield in self.fieldnames:
-            newkeyfield = keyfield+"_"
-        self.fieldnames = [self.fieldnames[0]] + [newkeyfield] + self.fieldnames[1:]
-        self.fieldtypes = [self.fieldtypes[0]] + ["I_"+keytype[2:]] + self.fieldtypes[1:]
-        self.buildtrow()
+        print(keyindex, selfindex)
         for row in other:
             data = [0]*(len(self.fieldnames)-1)
-            data[0] = row[keyindex]
+            for n in range(len(keyindex)):
+                data[selfindex[n]-1] = row[keyindex[n]]
             self.addrow(data)
+
+    def merge(self, other1, other2, key):
+        self.parenttables = [os.path.split(other1.lastfilename)[1],
+                             os.path.split(other2.lastfilename)[1]]
+        other1.childtables.append(self.lastfilename) 
+        other1.save(other1.lastfilename)
+        other2.childtables.append(self.lastfilename) 
+        other2.save(other2.lastfilename)
+        self.tabdata = []     
+   
+        key = re.split(":", key)
+
+        kindex1 = []
+        kindex2 = []
+        n = 1
+        for field in other1.fieldnames[1:]:
+            self.fieldnames.append(field)
+            self.fieldtypes.append("K_"+other1.fieldtypes[n][2:])
+            if other1.fieldnames[n] in key:
+                kindex1.append(n-1)
+            n+=1
+        n = 1
+        for field in other2.fieldnames[1:]:
+            if other2.fieldnames[n] in key:
+                kindex2.append(n-1) 
+            else: 
+               self.fieldnames.append(field)
+               self.fieldtypes.append("K_"+other2.fieldtypes[n][2:])
+            n+=1      
+        n = 0 
+        self.buildtrow()
+        lastbindex = 0
+        for row in other1.tabdata:
+            orow = other2.tabdata[n][1:]
+            lastbindex = row[0]
+            row = row[1:]
+            while [row[i] for i in kindex1] == [orow[i] for i in kindex2]:
+               for i in range(len(kindex2)):
+                  del orow[kindex2[i]-i] # Adjustment to account for already deleted columns
+               newrow = row + orow
+               self.addrow(newrow)
+               n+=1
+               if n==len(other2.tabdata):
+                   n-=1
+                   break
+               orow = other2.tabdata[n][1:]
 
     def clearall(self):
         for i in range(len(self.fieldtypes)):
             if 'O_' in self.fieldtypes[i]:
                 for row in self.tabdata:
                     row[i] = "-"
+        b = 0
+        while b<len(self.tabdata):
+            start = b
+            key = self.tabdata[b][0]
+            for b in range(start, len(self.tabdata)):
+                if self.tabdata[b][0] != key:
+                    break
+            diff = b-(start+1)
+            if b>start+1:
+                self.tabdata = self.tabdata[:start+1] + self.tabdata[b:]
+                self.track = self.track[:start] + self.track[start:]
+            b-=diff
+        if len(self.tabdata)>1:
+            if self.tabdata[-1][0] == self.tabdata[-2][0]:
+                self.tabdata = self.tabdata[:-1]
    
 
     def addrow(self, data, t=True):
@@ -334,12 +450,9 @@ class Worktable():
             self[len(self)-1] = data
             return
         newrow = self.trow
-        print(newrow)
-        print(data)
         for i in range(len(data)):
             if data[i] != 0:
                 newrow[i] = data[i]
-        print(newrow)
         self[len(self)-1] = newrow
 
     def addtask(self, filename):
@@ -360,6 +473,68 @@ class Worktable():
                 linef += "{:<"+width+"} "
         for row in self:
             print(linef.format(*row))
+
+def prune(wtname, path):
+    wt = Worktable(wtname)
+    others = glob.glob(os.path.join(path, "*.wtx"))
+    filelist = []
+    for f in others:
+        filelist.append(os.path.split(f)[1])
+    for p in wt.parenttables:
+        if p not in filelist:
+           wt.parenttables.remove(p)
+    for c in wt.childtables:
+        if c not in filelist:
+           wt.childtables.remove(c)
+    wt.save(wtname)
+
+def getnetwork(pathlist):
+    if pathlist==[]:
+        return [], {}, {}
+    filelist = []
+    for path in pathlist:
+        filelist.append(os.path.split(path)[1])
+        targetfolder = os.path.split(path)[0]
+    rank = dict.fromkeys(filelist, 0)
+    parents = dict.fromkeys(filelist, 0)
+    children = dict.fromkeys(filelist, 0)
+    for filename in filelist:
+        prune(os.path.join(targetfolder, filename), targetfolder)
+        wt = Worktable(os.path.join(targetfolder, filename))
+        parents[filename] = wt.parenttables
+        children[filename] = wt.childtables
+
+    sortree = []
+    filelist.sort()
+    for filename in filelist:
+        if len(parents[filename])==0:
+            sortree.insert(0, filename)
+            continue
+        index = 0
+        pars = []
+        for name in sortree:
+            index += 1
+            if name in parents[filename]:
+               pars.append(name)
+            if len(pars)==len(parents[filename]):
+               break
+        sortree.insert(index, filename)
+
+    for filename in sortree:
+        if len(parents[filename])>0:
+            for parent in parents[filename]:
+                rank[filename] = max(rank[filename], rank[parent])
+        for child in children[filename]:
+            rank[child] = max(rank[child], rank[filename]+1)
+
+    tree = []
+    for i in range(1+max(rank.values())):
+        level = []
+        for tab in rank:
+            if rank[tab]==i:
+                level.append(tab)
+        tree.append(level)
+    return tree, parents, children
 
 if __name__=="__main__":
     import sys    
@@ -403,6 +578,8 @@ if __name__=="__main__":
         print("Contents:")
         for filename in wt.cat():
           print("  "+filename)
+        print("\nParents: "+", ".join(wt.parenttables))
+        print("Children: "+", ".join(wt.childtables))
         print("\n")
         wt.show()
 
@@ -414,7 +591,42 @@ if __name__=="__main__":
     if cmd=="keyoff":
         wt = Worktable(sys.argv[2])
         otherwt = Worktable(sys.argv[3])
-        wt.keyoff(otherwt, sys.argv[4])
+        wt.keyoff(otherwt, sys.argv[4:])
         wt.save(sys.argv[2])
+
+    if cmd=="addrow":
+        wt = Worktable(sys.argv[2])
+        data = []
+        for item in sys.argv[3:]:
+            data.append(item)
+        wt.addrow(data)
+        wt.save(sys.argv[2])
+
+    if cmd=="view":
+        wt = Worktable(sys.argv[2])
+        wt.view(sys.argv[3])
+
+    if cmd=="network":
+        a,b,c = getnetwork(sys.argv[2:])
+        print(a)
+        print(b)
+        print(c)
+
+    if cmd=="merge":
+        tabname = re.split(".wtx",os.path.split(sys.argv[2])[1])[0]
+        tabname += "_" + re.split(".wtx",os.path.split(sys.argv[3])[1])[0]
+        tabname += ".wtx"
+
+        wt = Worktable()
+        wt.lastfilename = tabname
+        other1 = Worktable(sys.argv[2])
+        other2 = Worktable(sys.argv[3])
+        wt.merge(other1, other2, ":".join(sys.argv[4:]))
+        wt.template = {}
+        for field in wt.fieldnames:
+            wt.template[field] = "-"
+    
+        print(tabname)
+        wt.save(tabname)      
 
 
