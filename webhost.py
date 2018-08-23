@@ -43,9 +43,14 @@ class MainHandler(tornado.web.RequestHandler):
                         hostname=thishost,
                         action=actionhtml)
         else:
-            hostname = re.split(":", self.request.host)[0]
-            backend.siteroot = "http://{}:{}".format(hostname, portnum)
-            wsroot = "ws://{}:{}/ws".format(hostname, portnum)
+            tokens = re.split(":", self.request.host)
+            hostname = tokens[0]
+            if len(tokens)>1:
+                clientport = tokens[1]
+            else:
+                clientport = 80
+            backend.siteroot = "http://{}:{}".format(hostname, clientport)
+            wsroot = "ws://{}:{}/ws".format(hostname, clientport)
             thishost = backend.siteroot.split(':')[1][2:]
             self.render(backend.webPath+"ui/login.html", websocketRoot=wsroot, hostname=thishost)
 
@@ -53,9 +58,15 @@ class MainHandler(tornado.web.RequestHandler):
 class Authenticate(tornado.web.RequestHandler):
     def get(self):
         global thishost, wsroot
-        hostname = re.split(":", self.request.host)[0]
-        backend.siteroot = "http://{}:{}".format(hostname, portnum)
-        wsroot = "ws://{}:{}/ws".format(hostname, portnum)
+
+        tokens = re.split(":", self.request.host)
+        hostname = tokens[0]
+        if len(tokens)>1:
+            clientport = tokens[1]
+        else:
+            clientport = 80
+        backend.siteroot = "http://{}:{}".format(hostname, clientport)
+        wsroot = "ws://{}:{}/ws".format(hostname, clientport)
         thishost = backend.siteroot.split(':')[1][2:]
         self.render(backend.webPath+"ui/login.html", websocketRoot=wsroot, hostname=thishost)
 
