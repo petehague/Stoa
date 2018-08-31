@@ -61,24 +61,24 @@ def getpaths(curpath, target):
 
 class Worktable():
     def __init__(self, filename = False, template = False):
+        self.workflow = {}
+        self.template = {}
+        self.tasks = []
+        self.otherfiles = []
+        self.fieldnames = ['__bindex__']
+        self.fielducd = ['']
+        self.fieldtypes = ['K_int']
+        self.tabdata = []
+        self.tabptr = 0
+        self.track = []
+        self.lastfilename = ""
+        self.keyref = {}
+        self.trow = []
+        self.parenttables = []
+        self.childtables = []
         if filename:
             self.load(filename)
-        else:
-            self.workflow = {}
-            self.template = {}
-            self.tasks = []
-            self.otherfiles = []
-            self.fieldnames = ['__bindex__']
-            self.fieldtypes = ['K_int']
-            self.tabdata = []
-            self.tabptr = 0
-            self.track = []
-            self.lastfilename = ""
-            self.keyref = {}
-            self.trow = []
-            self.parenttables = []
-            self.childtables = []
-
+        
     def __iter__(self):
         return self
 
@@ -230,19 +230,22 @@ class Worktable():
                     continue
                 if line[0] == '#':
                     continue
-                if header==2:
+                if header>=2:
                     self.tabdata.append(re.split(' ', line))
                     self.keyref[(self.tabdata[-1])[1]] = len(self.tabdata)-1
                     self.track.append(TR_COMPLETE)
                     continue
                 if header==0:
                     self.fieldnames = re.split(' ', line)
-                    header = 1
-                else:
+                if header==1:
                     self.fieldtypes = re.split(' ', line)
-                    header = 2
+                #if header==2:
+                #    self.fielducd = re.split(' ', line)
+                header += 1
         self.buildtrow()
         self.lastfilename = filename
+        if len(self.fielducd)<len(self.fieldnames):
+            self.fielducd = ['']*len(self.fieldnames)
 
     def unpack(self, targetpath=""):
         with ZipFile(self.lastfilename, "r") as wtab:
@@ -269,7 +272,8 @@ class Worktable():
             writeyaml(self.template, tempdir+"/template.yml")
             tabfile = open(tempdir+"/table.txt", "w")
             tabfile.write(' '.join(self.fieldnames)+"\n")
-            tabfile. write(' '.join(self.fieldtypes)+"\n")
+            tabfile.write(' '.join(self.fieldtypes)+"\n")
+            tabfile.write(' '.join(self.fielducd)+"\n")
             for row in self.tabdata:
                 tabfile.write(' '.join(row)+"\n")
             tabfile.close()
@@ -302,6 +306,9 @@ class Worktable():
     def settypes(self, tlist):
         self.fieldtypes = tlist
 
+    def setucds(self, ucdlist):
+        self.fielducd = ucdlist
+
     def genfields(self, path=False):
         inps = self.workflow['inputs']
         outs = self.workflow['outputs']
@@ -330,6 +337,7 @@ class Worktable():
                 typestr += "int"
             self.fieldnames.append(field)
             self.fieldtypes.append(typestr)
+            self.fielducd.append('')
             if field in self.template:
                 self.trow.append(self.template[field])
             else:
@@ -348,6 +356,7 @@ class Worktable():
                 typestr += "int"
             self.fieldnames.append(field)
             self.fieldtypes.append(typestr)
+            self.fielducd.append('')
             if field in self.template:
                 self.trow.append(self.template[field])
             else:
@@ -392,6 +401,7 @@ class Worktable():
         for field in other1.fieldnames[1:]:
             self.fieldnames.append(field)
             self.fieldtypes.append("K_"+other1.fieldtypes[n][2:])
+            self.fielducd.append(other1.fielducd[n])
             if other1.fieldnames[n] in key:
                 kindex1.append(n-1)
             n+=1
@@ -400,8 +410,13 @@ class Worktable():
             if other2.fieldnames[n] in key:
                 kindex2.append(n-1) 
             else: 
-               self.fieldnames.append(field)
-               self.fieldtypes.append("K_"+other2.fieldtypes[n][2:])
+                if field in other1.fieldnames:
+                    field = re.sub("(_\d+)", lambda x: "_"+str(int(x.group(0)[1:]) + 1), field) 
+                    if "_" not in field:
+                        field += "_1"
+                self.fieldnames.append(field)
+                self.fieldtypes.append("K_"+other2.fieldtypes[n][2:])
+                self.fielducd.append(other2.fielducd[n])
             n+=1      
         n = 0 
         self.buildtrow()
@@ -464,6 +479,7 @@ class Worktable():
         linef = ("{:<"+width+"."+width+"} ")*len(self.fieldnames)
         print(linef.format(*self.fieldnames))
         print(linef.format(*self.fieldtypes))
+        print(linef.format(*self.fielducd))
         print("-"*(int(width)+1)*len(self.fieldnames))
         linef = ""
         for t in self.fieldtypes:

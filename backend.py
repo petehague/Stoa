@@ -98,7 +98,7 @@ def svgbar(filename, n, arrow=False):
     os.system("cp ui/smallheader.svg "+filename) 
 
     cols = ["red", "green", "blue", "orange"]
-    
+    cols = ["#777777"]*10    
     svg = open(filename, "a")
     if arrow:
         svg.write('<polygon points="10,79 25,85 10,91" style="fill:{0}; stroke:{0}" />'.format(cols[n]))
@@ -114,7 +114,8 @@ def svgline(filename, n, lmap):
     yoffset = n*170
     svg = open(filename, "a")
     cols = ["red", "green", "blue", "orange"]
-
+    cols = ["#777777"]*10    
+    svg = open(filename, "a")
     for start in range(len(lmap)):
         for finish in lmap[start]:
             svg.write('<polygon points="')
@@ -170,8 +171,12 @@ def projectInfo():
                    for i in range(len(wtmap[c-1])):
                        if wtmap[c-1][i] in parents[wtmap[c][r]]:
                           break
-                   arrowfile = os.path.join(targetFolder,"linkarrow_{}_{}_{}.svg".format(c,i,irn))
-                   svgbar(arrowfile, i, arrow=True)
+                   arrowfile_list = glob.glob(os.path.join(targetFolder,"log/linkarrow_{}_{}*.svg".format(c,i)))
+                   if not arrowfile_list:
+                     arrowfile = os.path.join(targetFolder,"log/linkarrow_{}_{}_{}.svg".format(c,i,irn))                
+                     svgbar(arrowfile, i, arrow=True)
+                   else:
+                     arrowfile = arrowfile_list[0]
                    linkbar = '<img width="25" src="/file/{}" />'.format(arrowfile)
                    cells += '<td class="spacecell">{}</td>'.format(linkbar)
                 wtfile = wtmap[c][r]
@@ -186,24 +191,32 @@ def projectInfo():
                     cells += '<td class="spacecell">&nbsp;</td>'
                 cells += '<td class="wtcell">&nbsp;</td>'
             if c<(len(wtmap)-1):
-                barfile = os.path.join(targetFolder,"linkbar_{}_{}_{}.svg".format(c,r,irn))
-                svgbar(barfile, r)
+                barfile_list = glob.glob(os.path.join(targetFolder,"log/linkbar_{}_{}*.svg".format(c,r)))
+                if not barfile_list:
+                  barfile = os.path.join(targetFolder,"log/linkbar_{}_{}_{}.svg".format(c,r,irn))
+                  svgbar(barfile, r)
+                else:
+                  barfile = barfile_list[0]
                 linkbar = '<img class="lineel" src="/file/{}" />'.format(barfile)
                 if len(wtmap[c])>r:
                     if len(children[wtmap[c][r]])==0:
                         linkbar = '&nbsp;'
                 cells += '<td class="spacecell">{}</td>'.format(linkbar if len(wtmap[c])>r else '')
-                svgfilename = os.path.join(targetFolder,"line_{}_{}_{}.svg".format(c,r,irn))
-                lmap = []
-                for parent in wtmap[c]:
-                  lmaplist = []
-                  index = 0
-                  for child in wtmap[c+1]:
-                    if child in children[parent]:
-                      lmaplist.append(index) 
-                    index += 1
-                  lmap.append(lmaplist)
-                svgline(svgfilename, r, lmap)
+                svgfilename_list = glob.glob(os.path.join(targetFolder,"log/line_{}_{}*.svg".format(c,r)))
+                if not svgfilename_list: 
+                  svgfilename = os.path.join(targetFolder,"log/line_{}_{}_{}.svg".format(c,r,irn))
+                  lmap = []
+                  for parent in wtmap[c]:
+                    lmaplist = []
+                    index = 0
+                    for child in wtmap[c+1]:
+                      if child in children[parent]:
+                        lmaplist.append(index) 
+                      index += 1
+                    lmap.append(lmaplist)
+                  svgline(svgfilename, r, lmap)
+                else:
+                  svgfilename = svgfilename_list[0]
                 linkline = '<img class="lineel" src="/file/{}" />'.format(svgfilename)
                 cells += '<td class="linecell">{}</td>'.format(linkline)
         outstring += '<tr>'+cells+'</tr>'
@@ -245,6 +258,12 @@ def setCurrent(userip, foldername):
     """
     userspace[session[userip]].folder = foldername
 
+def userlogin(userip, username):
+    session[userip] = username
+
+
+def usernamecheck(user):
+    return userstate.check(user)
 
 def usercheck(userip):
     """
@@ -435,14 +454,14 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
 
         userip = self.request.remote_ip
 
-        if message[0] == 'L':
-            tokens = re.split(",", message[1:])
-            session[userip] = tokens[0]
-            tasklist[session[userip]] = []
-            user = tokens[0]
-            if userstate.check(user):
-                userstate.set(user, "wsroot", tokens[1])
-                message[0] == 'H'
+        tokens = re.split(",", message[1:])
+        user = self.get_secure_cookie("stoa-user").decode('utf8')
+        session[userip] = user
+        tasklist[session[userip]] = []
+        if not userstate.check(user):
+            self.clear_cookie("stoa-user")
+            print("Bad user cookie")
+            return
 
         if userip in session:
             user = session[userip]
@@ -657,7 +676,12 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             tab += "</tr><tr><th></th>"
             for ftype in wt.fieldtypes[1:]:
                 tab += "<th>{}</th>".format(ftype)
-            tab += '</tr><tr><td colspan="{}"></td></tr>'.format(len(wt.fieldtypes)-1)
+            tab += "</tr><tr><th>UCD</th>"
+            for i, fucd in enumerate(wt.fielducd[1:]):
+                print(i,fucd)
+                sys.stdout.flush()
+                tab += '<th><input type="text" class="ucdrow" id="newucd{}" /></th>'.format(i)
+            tab += '</tr><tr><td colspan="{}"></td></tr>'.format(len(wt.fieldtypes))
             alternator = 0
             lastbindex = -1
             for row in wt:
@@ -721,6 +745,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
         #Logout
         if message[0] == 'X':
             del session[userip]
+            self.redirect("/login")
 
     def on_close(self):
         """

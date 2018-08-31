@@ -7,31 +7,6 @@
   <title>Stoa @ {% raw hostname %}</title>
 	<link rel="stylesheet" type="text/css" href="{{ static_url("main.css") }}" />
   <meta http-equiv="Content-Type" content="text/html; charset=iso-8859-1" />
-<script type="text/javascript">
-  websocketaddr = "{% raw websocketRoot %}"
-  var ws = new WebSocket(websocketaddr)
-                      
-  function login() {
-    uname = document.getElementById("uname_field").value
-    ws.send("L"+uname+","+websocketaddr)
-
-    urlstring = window.location.href
-    paramstring = urlstring.split("loc=")
-    actionstring = urlstring.split("action=")
-    if (paramstring.length>1) {
-      loc = paramstring[1]
-      loc = loc.split("&")[0]
-      if (actionstring.length>1) {
-        action = actionstring[1]
-        action = action.split("&")[0]
-        loc += "&action="+action
-      }
-      window.location="/?loc="+loc
-    } else {
-      window.location="/"
-    }
-  }
-</script>
 </head>
 
 <body >
@@ -44,7 +19,7 @@
 
     <div id="workarea">
 				<p>Username:</p>
-				<p><form action="javascript:login()"><input id="uname_field" type="text" name="uname" /><input value="Login" type="submit" /></form></p>
+				<p><form action="/login" method="POST"><input id="uname_field" type="text" name="uname" /><input value="Login" type="submit" /></form></p>
     </div>
 
     <div id="leftmenu">
