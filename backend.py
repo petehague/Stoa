@@ -146,19 +146,29 @@ def svgline(filename, n, lmap):
     svg.close()
 
 
-def projectInfo():
+def projectInfo(userFolder):
     """
     Produces the main page containing information about the current project
 
     :return: HTML output
     """
     outstring = '<h2>{}</h2>'.format(projectname)
+
+    if userFolder=="user_admin":
+        outstring += '<h3>Users:</h3><p class="data">'
+        usernames = re.split(",", userstate.list())
+        for uname in usernames:
+            outstring += '&nbsp;-&nbsp;{}<br />'.format(uname)
+        outstring += '</p>'
+        outstring += '<p><a href="javascript:getPath(\'S\')">Create New User</a></p>'
+        return outstring
+
     outstring += '<p><a href="javascript:getPath(\'V\')">\
                   Browse all folders</a><br /><a href="javascript:getPath(\'C\')">\
                   Create new worktable</a></p>'
 
     outstring += '<p><table class="wttab">'
-    wtmap, parents, children = getnetwork(glob.glob(os.path.join(targetFolder, "*.wtx")))
+    wtmap, parents, children = getnetwork(glob.glob(os.path.join(targetFolder, userFolder, "*.wtx")))
     nrows = 0
     irn = np.random.randint(9999)
     for n in range(len(wtmap)):
@@ -171,16 +181,16 @@ def projectInfo():
                    for i in range(len(wtmap[c-1])):
                        if wtmap[c-1][i] in parents[wtmap[c][r]]:
                           break
-                   arrowfile_list = glob.glob(os.path.join(targetFolder,"log/linkarrow_{}_{}*.svg".format(c,i)))
+                   arrowfile_list = glob.glob(os.path.join(targetFolder, userFolder,"log/linkarrow_{}_{}*.svg".format(c,i)))
                    if not arrowfile_list:
-                     arrowfile = os.path.join(targetFolder,"log/linkarrow_{}_{}_{}.svg".format(c,i,irn))                
+                     arrowfile = os.path.join(targetFolder,userFolder,"log/linkarrow_{}_{}_{}.svg".format(c,i,irn))                
                      svgbar(arrowfile, i, arrow=True)
                    else:
                      arrowfile = arrowfile_list[0]
                    linkbar = '<img width="25" src="/file/{}" />'.format(arrowfile)
                    cells += '<td class="spacecell">{}</td>'.format(linkbar)
                 wtfile = wtmap[c][r]
-                wtpath = os.path.join(targetFolder, wtfile)
+                wtpath = os.path.join(targetFolder, userFolder, wtfile)
                 cells += '<td class="wtcell">'
                 cells += '<center><a href="javascript:getPath(\'t{}\')">'.format(wtpath)
                 cells += '<img width="75px" height="75px" src="static/page.svg" /><br />'
@@ -191,9 +201,9 @@ def projectInfo():
                     cells += '<td class="spacecell">&nbsp;</td>'
                 cells += '<td class="wtcell">&nbsp;</td>'
             if c<(len(wtmap)-1):
-                barfile_list = glob.glob(os.path.join(targetFolder,"log/linkbar_{}_{}*.svg".format(c,r)))
+                barfile_list = glob.glob(os.path.join(targetFolder,userFolder,"log/linkbar_{}_{}*.svg".format(c,r)))
                 if not barfile_list:
-                  barfile = os.path.join(targetFolder,"log/linkbar_{}_{}_{}.svg".format(c,r,irn))
+                  barfile = os.path.join(targetFolder,userFolder,"log/linkbar_{}_{}_{}.svg".format(c,r,irn))
                   svgbar(barfile, r)
                 else:
                   barfile = barfile_list[0]
@@ -202,9 +212,9 @@ def projectInfo():
                     if len(children[wtmap[c][r]])==0:
                         linkbar = '&nbsp;'
                 cells += '<td class="spacecell">{}</td>'.format(linkbar if len(wtmap[c])>r else '')
-                svgfilename_list = glob.glob(os.path.join(targetFolder,"log/line_{}_{}*.svg".format(c,r)))
+                svgfilename_list = glob.glob(os.path.join(targetFolder,userFolder,"log/line_{}_{}*.svg".format(c,r)))
                 if not svgfilename_list: 
-                  svgfilename = os.path.join(targetFolder,"log/line_{}_{}_{}.svg".format(c,r,irn))
+                  svgfilename = os.path.join(targetFolder,userFolder,"log/line_{}_{}_{}.svg".format(c,r,irn))
                   lmap = []
                   for parent in wtmap[c]:
                     lmaplist = []
@@ -473,6 +483,10 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
 
         sys.stdout.flush()
 
+        userFolder = "user_"+user
+        if not os.path.exists(os.path.join(targetFolder,userFolder)):
+            os.system("mkdir {}".format(os.path.join(targetFolder,userFolder)))
+
         if message[0] == '.':
             if message[1] == '1':
                 return
@@ -492,7 +506,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
         print(time.strftime('[%x %X]')+" "+user+"("+userip+"): "+message)
 
         if message[0] == 'H':
-            self.write_message(projectInfo())
+            self.write_message(projectInfo(userFolder))
 
         #Go back up a level in the file system
         if message[0] == 'B':
@@ -616,24 +630,25 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                 if len(tokens)>2:
                     oldwt = Worktable(tokens[2])
                     newwt.keyoff(oldwt, tokens[3:])
-                newwt.save(os.path.join(targetFolder, wtname))
+                newwt.save(os.path.join(targetFolder, userFolder, wtname))
                 makescreen += "<p>Worktable created</p>"
+                os.system("rm -f log/*.svg")
             else:
                 makescreen += '<p><form action="javascript:newWorktable()">'
                 makescreen += 'CWL File<br /><input list="cwlglob" id="cwlfile" /><br />'
                 makescreen += '<datalist id="cwlglob">'
-                for filename in glob.glob(os.path.join(targetFolder,"*.cwl")):
+                for filename in glob.glob(os.path.join(targetFolder,userFolder,"*.cwl")):
                     makescreen += '<option value="{}" />'.format(filename)
                 makescreen += '</datalist>'
                 makescreen += 'YML File<br /><input list="ymlglob" id="ymlfile" /><br />' 
                 makescreen += '<datalist id="ymlglob">'
-                for filename in glob.glob(os.path.join(targetFolder,"*.yml")):
+                for filename in glob.glob(os.path.join(targetFolder,userFolder,"*.yml")):
                     makescreen += '<option value="{}" />'.format(filename)
                 makescreen += '</datalist>'
                 makescreen += '<input type="checkbox" id="keyoff" value="Keyoff" />Key off table<br />'
                 makescreen += 'Parent table<br /><input list="wtxglob" id="wtxfile" /><br />'
                 makescreen += '<datalist id="wtxglob">'
-                for filename in glob.glob(os.path.join(targetFolder,"*.wtx")):
+                for filename in glob.glob(os.path.join(targetFolder,userFolder,"*.wtx")):
                     makescreen += '<option value="{}" />'.format(filename)
                 makescreen += '</datalist>'
                 makescreen += 'Fields to key off (seperate with :)<br/><input type="text" id="keyfields" /><br />'
@@ -659,7 +674,8 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                 if c in wt.parenttables:
                     wt.parenttables.remove(message[1:])
                 cwt.save(os.path.join(targetFolder,c))
-            os.remove(message[1:])          
+            os.remove(message[1:])     
+            os.system("rm -f log/*.svg")
             self.write_message('<script  type="text/javascript">getPath(\'H\')</script>')
 
         #Display a results table
@@ -732,20 +748,20 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
 
         #Control file editing console
         if message[0] == 'S':
-            result = "<a href=\"javascript:getPath('Ystoa.yml')\">Edit master file</a><br />"
-            commandlist = pipe.doActlist("")
-            for command in commandlist:
-                if 'cwl' in command:
-                    rootname = pipe.scriptFolder+(re.split(".cwl", command)[0]).strip() + ".yml"
-                    if not os.path.exists(rootname):
-                        open(rootname,"a").close()
-                    result+="<a href=\"javascript:getPath('Y{}')\">Edit {} default file</a><br />".format(rootname, command)
-            self.write_message(result)
+            if user!="admin":
+                return
+            if len(message)>1:
+                userstate.newuser(message[1:])
+                self.write_message("<p>Created user: {}</p>".format(message[1:]))
+            else:
+                userform = '<form action="javascript:newUser()">'
+                userform += '<input type="text" id="newuser"/><br />'
+                userform += '<input type="submit" value="Create"/></form>'
+                self.write_message(userform)
 
         #Logout
         if message[0] == 'X':
             del session[userip]
-            self.redirect("/login")
 
     def on_close(self):
         """

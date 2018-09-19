@@ -39,4 +39,14 @@ def tail(uid, n):
     m = userstate.tail(userstate_pb2.tailRequest(id=uid, n=n))
     return m.buff
 
+def list():
+    global userstate
+    m = userstate.list(userstate_pb2.Empty())
+    return m.userlist
+
+def newuser(uname):
+    global userstate
+    m = userstate.newuser(userstate_pb2.newuserRequest(uname=uname))
+    return m.status
+
 userstate.start(userstate_pb2.Empty())

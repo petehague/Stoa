@@ -17,10 +17,20 @@ service Userstate {
   rpc append(appendRequest) returns (boolReply) {}
   rpc pop(checkRequest) returns (popReply) {}
   rpc tail(tailRequest) returns (tailReply) {}
+  rpc list(Empty) returns (listReply) {}
+  rpc newuser(newuserRequest) returns (statReply) {}
+}
+
+message newuserRequest {
+  string uname = 1;
 }
 
 message boolReply {
   bool value = 1;
+}
+
+message listReply {
+  string userlist = 1;
 }
 
 message tailRequest {

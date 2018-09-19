@@ -50,7 +50,7 @@ class MainHandler(secureHandler):
         wsroot = "ws://{}:{}/ws".format(hostname, clientport)
         self.render(backend.webPath+"ui/index.html",
                     websocketRoot=wsroot,
-                    textContent=backend.projectInfo(),
+                    textContent=backend.projectInfo("user_"+user.decode()),
                     hostname=thishost,
                     action=actionhtml)
 

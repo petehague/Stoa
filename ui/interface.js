@@ -2,6 +2,10 @@ function getPath(pathname) {
   ws.send(pathname)
 }
 
+function newUser() {
+  ws.send('S'+document.getElementById("newuser").value)
+}
+
 function commitFile(filename) {
   ws.send("y"+filename)
 } 

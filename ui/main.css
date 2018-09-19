@@ -198,6 +198,19 @@ h2 {
     font-family: sans-serif;
 }
 
+h3 {
+    color: #555588;
+    font-size: 20px;
+    font-family: sans-serif;
+    font-variant: small-caps;
+}
+
+p.data {
+    font-family: monospace;
+    color: #111111;
+    font-size: 14px;
+}
+
 table {
     border-collapse: collapse;
     top: 0px;

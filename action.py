@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import cwltool.factory
+from cwltool.factory import WorkflowStatus
 from yml import yamler, writeyaml
 import re
 import os
@@ -75,7 +76,18 @@ def parsecwloutput(pathname, result, fields, l=False):
                     shutil.copyfile(outobj['location'][7:], 
                                     os.path.join(pathname, outobj['basename']))
             else:
-               outlist.append(outobj)
+                if type(outobj) is list:
+                    oldoutobj = outobj
+                    outobj = []
+                    for item in oldoutobj:
+                        if type(item) is dict:
+                            if item['class']=='File':
+                                outobj.append(os.path.join(pathname,item['basename']))
+                                shutil.copyfile(item['location'][7:], 
+                                                os.path.join(pathname, item['basename']))
+                        else:
+                            outobj.append(item)
+                outlist.append(outobj)
     return outlist
 
 def ExecCWL(cmdFile, pathname, bindex):
@@ -104,6 +116,12 @@ def ExecCWL(cmdFile, pathname, bindex):
         log.write("Workflow Exception: {}\n".format(werr.args))
         log.close()
         print("Workflow Exception: {}\n".format(werr.args))
+        wt = False
+    except WorkflowStatus as wstat:
+        print("Workflow failed with status: {}\n".format(wstat.args))
+        wt = False
+    except Exception as e:
+        print("Exception during action: {}\n".format(e.args))
         wt = False
     if wt:
         wt.update(wt.bybindex(bindex),parsecwloutput(pathname, result, wt.fieldnames))

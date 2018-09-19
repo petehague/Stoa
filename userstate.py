@@ -60,7 +60,7 @@ class userstateServer(userstate_pb2_grpc.UserstateServicer):
         with dbcon:
             c = dbcon.cursor()
             c.execute("CREATE TABLE IF NOT EXISTS tblUsers(\
-                       UID INT,\
+                       UID INTEGER PRIMARY KEY,\
                        Username VARCHAR(100))")
             c.execute("SELECT * FROM tblUsers")
             users = c.fetchall()
@@ -70,6 +70,19 @@ class userstateServer(userstate_pb2_grpc.UserstateServicer):
                 c.execute("INSERT INTO tblUsers (UID, Username) VALUES (0,'admin')")
                 userspace['admin'] = userState()
         return userstate_pb2.statReply(status="OK")
+
+    def newuser(self, request, context):
+        global userspace
+        if request.uname in userspace:
+            return userstate_pb2.statReply(status="Failed")
+
+        dbcon = sql.connect('contents.db')
+        with dbcon:
+            c = dbcon.cursor()
+            c.execute("INSERT INTO tblUsers (Username) VALUES ('{}')".format(request.uname))
+            userspace[request.uname] = userState()
+            return userstate_pb2.statReply(status="OK")
+        return userstate_pb2.statReply(status="Database connection error")
 
     def get(self, request, context):
         global userspace
@@ -131,6 +144,14 @@ class userstateServer(userstate_pb2_grpc.UserstateServicer):
         else:
             raise RuntimeError("Incorrect user key")
 
+    def list(self, request, context):
+        global userspace
+        userlist = ""
+        for username in userspace:
+            userlist += ","+username #Would like to redo this as a generator at some point, hence the unpythonic method
+        if len(userlist)>0:
+            userlist = userlist[1:]
+        return userstate_pb2.listReply(userlist=userlist)
 
 
 if __name__ == "__main__":
