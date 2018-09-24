@@ -7,6 +7,7 @@ from random import randrange
 import tempfile
 import collections
 from astropy.table import Table
+import astropy.io.votable as votable
 
 '''
   The worktable library
@@ -40,6 +41,12 @@ typemap = {'int': 'int',
            'string': 'str',
            'stdout': 'str',
            'File': 'file'}
+
+dtypemap = {'int': 'i4',
+            'unique': 'i4',
+            'float': 'f4',
+            'str': 'U512',
+            'file': 'U512'}
 
 #Tracking codes
 TR_PENDING = 0
@@ -246,6 +253,30 @@ class Worktable():
         self.lastfilename = filename
         if len(self.fielducd)<len(self.fieldnames):
             self.fielducd = ['']*len(self.fieldnames)
+
+    def conesearch(self, rafield, decfield, ra, dec, sr):
+        tabletypes = []
+        for t in self.fieldtypes:
+            tabletypes.append(dtypemap[t[2:]])
+        newtable = Table(names = self.fieldnames, dtype=tabletypes)   
+        ramin, ramax = ra-sr, ra+sr
+        decmin, decmax = dec-ra, dec+sr
+        rsq = sr*sr
+        rafield = self.fieldnames.index(rafield)
+        decfield = self.fieldnames.index(decfield)
+        for row in self:
+            if row[rafield]>=ramin:
+                if row[rafield]<=ramax:
+                    if row[decfield]>=decmin:
+                        if row[decfield]<=decmax:
+                            if (row[decfield]-dec)*(row[decfield]-dec)+(row[rafield]-ra)*(row[rafield]-ra)<=sr:                              
+                                newtable.add_row(row)
+        logfile = votable.from_table(newtable)
+        logfile.to_xml("votable.xml")
+        with open("votable.xml", "r") as voout:
+            return voout.read()
+
+
 
     def unpack(self, targetpath=""):
         with ZipFile(self.lastfilename, "r") as wtab:

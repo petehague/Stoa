@@ -96,7 +96,8 @@ app = tornado.web.Application([
     (r"/ws", backend.SocketHandler),
     (r"/file/(.*)", securedStatic, {'path': backend.targetFolder}),
     (r"/stage/(.*)", securedStatic, {'path': os.getcwd()+"/usercache"}),
-    (r"/docs/(.*)", securedStatic, {'path': os.getcwd()+"/docs/_build/html"})
+    (r"/docs/(.*)", securedStatic, {'path': os.getcwd()+"/docs/_build/html"}),
+    (r"/conesearch/(.*)", backend.ConeSearchHandler)
     ], **settings)
 
 print("Starting backend at {}".format(backend.targetFolder))

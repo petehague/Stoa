@@ -169,6 +169,19 @@ def projectInfo(userFolder):
 
     outstring += '<p><table class="wttab">'
     wtmap, parents, children = getnetwork(glob.glob(os.path.join(targetFolder, userFolder, "*.wtx")))
+    for servfile in glob.glob(os.path.join(targetFolder, userFolder, "*.service")):
+        servfilename = os.path.split(servfile)[1]
+        children[servfilename] = []
+        with open(servfile, "r") as s:
+            ssource = s.readline().strip()
+        parents[servfilename] = [ssource]
+        children[ssource].append(servfilename)
+        for i,column in enumerate(wtmap):
+            if ssource in column:
+                if i==len(wtmap)-1:
+                    wtmap.append([])
+                wtmap[i+1].append(servfilename)
+
     nrows = 0
     irn = np.random.randint(9999)
     for n in range(len(wtmap)):
@@ -193,7 +206,13 @@ def projectInfo(userFolder):
                 wtpath = os.path.join(targetFolder, userFolder, wtfile)
                 cells += '<td class="wtcell">'
                 cells += '<center><a href="javascript:getPath(\'t{}\')">'.format(wtpath)
-                cells += '<img width="75px" height="75px" src="static/page.svg" /><br />'
+                if ".service" in wtfile:
+                    icon = "service"
+                    wtfile = wtfile[:-8]
+                else:
+                    icon = "page"
+                    wtfile = wtfile[:-4]
+                cells += '<img width="75px" height="75px" src="static/{}.svg" /><br />'.format(icon)
                 cells += '<p class="wttext">{}</p>'.format(wtfile)
                 cells += '</a></center></td>'        
             else:
@@ -412,6 +431,35 @@ def folderList(path, direction, userip):
     output += "</ul>"
     userstate.set(user, "folder", currentFolder)
     return output
+
+class ConeSearchHandler(tornado.web.RequestHandler):
+    def get(self, *args):
+        servicepath = re.split("/",args[0]) 
+        getargs = self.request.arguments
+        if all (k in getargs for k in ("RA","DEC","SR")):
+            ra,dec,sr = float(getargs["RA"][0].decode()), float(getargs["DEC"][0].decode()), float(getargs["SR"][0].decode())
+        else:
+            self.write("Couldn't retrieve conesearch parameters")
+            return
+        if not userstate.check(servicepath[0]):
+            self.write("No such user")
+            return
+        print("Conesearch request for {} at {},{} r={}".format(servicepath, ra, dec, sr))
+        userFolder = "user_"+servicepath[0]
+        csfile = servicepath[1]+".service"
+        with open(os.path.join(targetFolder, userFolder, csfile), "r") as sfile:
+            wtfile = sfile.readline().strip()
+            rafield = sfile.readline().strip()
+            decfield = sfile.readline().strip()
+        wt = Worktable(os.path.join(targetFolder, userFolder, wtfile))
+        self.write(wt.conesearch(rafield, decfield, ra, dec, sr))
+                       
+
+class FitsHandler(tornado.web.RequestHandler):
+    def get(self, *args):
+        servicepath = re.split("/",args[0])
+        self.write(servicepath[0])
+
 
 class SocketHandler(tornado.websocket.WebSocketHandler):
     """
@@ -632,7 +680,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                     newwt.keyoff(oldwt, tokens[3:])
                 newwt.save(os.path.join(targetFolder, userFolder, wtname))
                 makescreen += "<p>Worktable created</p>"
-                os.system("rm -f log/*.svg")
+                os.system("rm -f "+os.path.join(targetFolder, userFolder,"log","*.svg"))
             else:
                 makescreen += '<p><form action="javascript:newWorktable()">'
                 makescreen += 'CWL File<br /><input list="cwlglob" id="cwlfile" /><br />'
@@ -675,7 +723,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                     wt.parenttables.remove(message[1:])
                 cwt.save(os.path.join(targetFolder,c))
             os.remove(message[1:])     
-            os.system("rm -f log/*.svg")
+            os.system("rm -f "+os.path.join(targetFolder, userFolder,"log","*.svg"))
             self.write_message('<script  type="text/javascript">getPath(\'H\')</script>')
 
         #Display a results table
