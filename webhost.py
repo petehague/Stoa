@@ -14,7 +14,7 @@ if len(sys.argv) > 2:
 else:
     portnum = 8888
 
-backend.siteroot = "http://{}:{}".format(socket.gethostname(), portnum)
+backend.siteroot = "http://{}".format(socket.gethostname()) if portnum==80 else "http://{}:{}".format(socket.gethostname(), portnum)
 wsroot = "ws://{}:{}/ws".format(socket.gethostname(), portnum)
 
 thishost = backend.siteroot.split(':')[1][2:]
@@ -47,7 +47,9 @@ class MainHandler(secureHandler):
             clientport = tokens[1]
         else:
             clientport = 80
+        backend.siteroot = "http://{}".format(hostname) if clientport==80 else "http://{}:{}".format(hostname, clientport)
         wsroot = "ws://{}:{}/ws".format(hostname, clientport)
+        thishost = backend.siteroot.split(':')[1][2:]
         self.render(backend.webPath+"ui/index.html",
                     websocketRoot=wsroot,
                     textContent=backend.projectInfo("user_"+user.decode()),
@@ -72,7 +74,7 @@ class Authenticate(tornado.web.RequestHandler):
             clientport = tokens[1]
         else:
             clientport = 80
-        backend.siteroot = "http://{}:{}".format(hostname, clientport)
+        backend.siteroot = "http://{}".format(hostname) if clientport==80 else "http://{}:{}".format(hostname, clientport)
         wsroot = "ws://{}:{}/ws".format(hostname, clientport)
         thishost = backend.siteroot.split(':')[1][2:]
         self.render(backend.webPath+"ui/login.html", websocketRoot=wsroot, hostname=thishost)
@@ -86,6 +88,8 @@ class Authenticate(tornado.web.RequestHandler):
             self.redirect("/")
         else:
             self.redirect("/login")
+
+
 settings = {"static_path": os.getcwd()+"/ui",
             "login_url": "/login",
             "cookie_secret": "Add later"}
@@ -97,7 +101,8 @@ app = tornado.web.Application([
     (r"/file/(.*)", securedStatic, {'path': backend.targetFolder}),
     (r"/stage/(.*)", securedStatic, {'path': os.getcwd()+"/usercache"}),
     (r"/docs/(.*)", securedStatic, {'path': os.getcwd()+"/docs/_build/html"}),
-    (r"/conesearch/(.*)", backend.ConeSearchHandler)
+    (r"/conesearch/(.*)", backend.ConeSearchHandler),
+    (r"/fits/(.*)", backend.FitsHandler)
     ], **settings)
 
 print("Starting backend at {}".format(backend.targetFolder))

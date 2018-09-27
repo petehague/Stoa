@@ -163,9 +163,7 @@ def projectInfo(userFolder):
         outstring += '<p><a href="javascript:getPath(\'S\')">Create New User</a></p>'
         return outstring
 
-    outstring += '<p><a href="javascript:getPath(\'V\')">\
-                  Browse all folders</a><br /><a href="javascript:getPath(\'C\')">\
-                  Create new worktable</a></p>'
+    outstring += '<p><a href="<a href="javascript:getPath(\'C\')>Create new worktable</a></p>'
 
     outstring += '<p><table class="wttab">'
     wtmap, parents, children = getnetwork(glob.glob(os.path.join(targetFolder, userFolder, "*.wtx")))
@@ -205,7 +203,8 @@ def projectInfo(userFolder):
                 wtfile = wtmap[c][r]
                 wtpath = os.path.join(targetFolder, userFolder, wtfile)
                 cells += '<td class="wtcell">'
-                cells += '<center><a href="javascript:getPath(\'t{}\')">'.format(wtpath)
+                command = 't' if '.wtx' in wtpath else 's'
+                cells += '<center><a href="javascript:getPath(\'{}{}\')">'.format(command, wtpath)
                 if ".service" in wtfile:
                     icon = "service"
                     wtfile = wtfile[:-8]
@@ -319,21 +318,6 @@ def getwsroot(userip):
     else:
         return False
 
-
-def getResource(filename):
-    """
-    Read in specified file as single string
-
-    :param filename: The name of the file to be read
-    :return: A string
-    """
-    f = open(filename, "r")
-    content = ""
-    for line in f:
-        content += line
-    return content
-
-
 def makeFlagList():
     """
     Calls the pipeline to get a list of the flagged paths
@@ -358,80 +342,6 @@ def xmlListing(path):
         listing.append(path+node.attrib['key'])
     return listing
 
-#Quite slow
-def trimPath(pathname):
-    folders = re.split("/", pathname)
-    pathstring = ""
-    trimmedpath = ""
-    for node in folders:
-        filelist = glob.glob(targetFolder+pathstring+"/*")
-        pathstring += "/"+node
-        if len(filelist)>1:
-            trimmedpath += "/"+node
-        else:
-            trimmedpath += "/..."
-    return trimmedpath
-
-
-def folderList(path, direction, userip):
-    """
-    Generate an HTML listing of a folder
-
-    :param path: The path of the folder
-    :param direction: Direction of browsing (1 for going down, -1 for up)
-    :param userip:  The IP address of the user (currently used as ID)
-    :return: HTML string
-    """
-    global userspace
-    user = session[userip]
-    currentFolder = userstate.get(user, "folder")
-
-    flaglist = makeFlagList()
-    filelist = action.glob(path+"*")
-    filelist.sort()
-    if len(filelist) == 1 and os.path.isdir(filelist[0]):
-        if direction < 0:
-            clip = len(re.split("/", currentFolder)[-2])+1
-            currentFolder = currentFolder[:-clip]
-        else:
-            currentFolder += "/"+re.split("/", filelist[0])[-1] + "/"
-        userstate.set(user,"folder",currentFolder)
-        return folderList(targetFolder+currentFolder, direction, userip)
-    if path+"product.xml" in filelist:
-        filelist = xmlListing(path) #Switch over to yml and generalise
-    output = '<ul class="filelist">'
-    for filename in filelist:
-        shortfile = re.split("/", filename)[-1]
-        if os.path.isdir(filename):
-            output += '\n<li class="filename"><div class="filetext">\
-                       <a href="javascript:getPath(\'V{0}\')">\
-                       {1}</a></div></li>'.format(filename, shortfile)
-        else:
-            template = '\n<li class="filename" id="{1}"><div class="filetext">\
-            <a href="javascript:view(\'{1}\')">{0}</a></div><a class="off"\
-            href="javascript:flag(\'{1}\',1)" style="visibility: {4}"\
-            id="{1}">{2}</a><a class="on" href="javascript:flag(\'{1}\',0)"\
-            style="visibility: {5}" id="{1}">{3}</a></li>'
-            star = getResource(webPath+"ui/star.svg")
-            fstar = getResource(webPath+"ui/fillstar.svg")
-            if filename in flaglist:
-                output += template.format(shortfile,
-                                          filename.replace(targetFolder,"./"),
-                                          star,
-                                          fstar,
-                                          "hidden",
-                                          "visible")
-            else:
-                output += template.format(shortfile,
-                                          filename.replace(targetFolder,"./"),
-                                          star,
-                                          fstar,
-                                          "visible",
-                                          "hidden")
-    output += "</ul>"
-    userstate.set(user, "folder", currentFolder)
-    return output
-
 class ConeSearchHandler(tornado.web.RequestHandler):
     def get(self, *args):
         servicepath = re.split("/",args[0]) 
@@ -452,13 +362,21 @@ class ConeSearchHandler(tornado.web.RequestHandler):
             rafield = sfile.readline().strip()
             decfield = sfile.readline().strip()
         wt = Worktable(os.path.join(targetFolder, userFolder, wtfile))
-        self.write(wt.conesearch(rafield, decfield, ra, dec, sr))
+        self.write(wt.conesearch(rafield, decfield, ra, dec, sr, siteroot))
                        
 
 class FitsHandler(tornado.web.RequestHandler):
     def get(self, *args):
         servicepath = re.split("/",args[0])
-        self.write(servicepath[0])
+        if not userstate.check(servicepath[0]):
+            self.write("No such user")
+            return
+        userFolder = "user_"+servicepath[0]
+        csfile = servicepath[1]+".service"
+        with open(os.path.join(targetFolder, userFolder, csfile), "r") as sfile:
+            wtfile = sfile.readline().strip()
+        wt = Worktable(os.path.join(targetFolder, userFolder, wtfile))
+        self.write(wt.fitsout())
 
 
 class SocketHandler(tornado.websocket.WebSocketHandler):
@@ -492,17 +410,21 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
         Responds to WS messages. Action is determined by first character
         of message
 
-        * L: Login
         * H: Home
-        * B: Back
-        * V: View folder
         * F: Flag target
         * U: Unflag target
-        * A: Get action list
-        * R: Run the specified action
+        * A/a: Get action list
+        * P: Run a worktable
+        * p: Run one row of a worktable
+        * R/f: Run the specified action
+        * r: Terminate an action
         * D: Display a file
         * C: Create new worktable
-        * Q: Query the process table
+        * z: Clear contents of a worktable
+        * k: Delete a worktable
+        * t: Display a worktable
+        * &: Append to a worktable
+        * s: Display a service
         * X: Logout
 
         :param message: WS message string
@@ -555,33 +477,6 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
 
         if message[0] == 'H':
             self.write_message(projectInfo(userFolder))
-
-        #Go back up a level in the file system
-        if message[0] == 'B':
-            if len(re.findall("/", currentFolder)) > 0:
-                clip = len(re.split("/", currentFolder)[-2])+1
-                currentFolder = currentFolder[:-clip]
-                userstate.set(user, "folder", currentFolder)
-                self.write_message(folderList(targetFolder+currentFolder,
-                                              -1, userip))
-
-        #View a specified subfolder of the current folder
-        if message[0] == 'V':
-            currentFolder += re.split("/", message)[-1]+"/"
-            if len(message) == 1:
-                currentFolder = ""
-            print(currentFolder)
-            userstate.set(user, "folder", currentFolder)
-            self.write_message(folderList(targetFolder+currentFolder,
-                                          1, userip))
-
-        #View a specified folder
-        if message[0] == 'W':
-            currentFolder = message[1:]+"/"
-            print(currentFolder)
-            userstate.set(user, "folder", currentFolder)
-            self.write_message(folderList(targetFolder+currentFolder,
-                                          1, userip))
 
         #Flag a target
         if message[0] == 'F':
@@ -652,17 +547,6 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             if fnmatch(fileReq,handlerpattern):
                 self.write_message("+Loading image...")
                 self.write_message(filehandler.stoa(targetFolder+fileReq))
-
-        #Edit a control file
-        if message[0] == 'Y':
-            editor = "<p><a href=\"javascript:getPath('{}')\">Reset</a><br />".format(message)
-            editor += "<a href=\"javascript:commitFile('{}')\">Commit</a></p>".format(message)
-            editor += '<textarea rows="10" columns="80" style="width: 600px; height: 1000px;">'
-            ymlfile = open(message[1:],"r")
-            for line in ymlfile:
-                editor += line
-            editor += '</textarea>'
-            self.write_message(editor)
 
         if message[0] == 'C':
             makescreen = "<h2>Create New Worktable</h2>"
@@ -764,7 +648,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                         coltext = '<a href="javascript:getPath(\'Y{0}\')">{0}</a>'.format(coltext)
                         ishtml = True
                     if ".png" in coltext:
-                        coltext = '<img height="150px" src="/file/{}" />'.format(coltext)
+                        coltext = '<img height="150px" src="/file/{}" />'.format(os.path.relpath(coltext, targetFolder))
                         ishtml = True
                     if bindex==lastbindex and "I_" in wt.fieldtypes[colid]:
                         tab += "<td>&nbsp;</td>"
@@ -794,18 +678,19 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             wt.save(tokens[0])
             self.write_message('<script  type="text/javascript">getPath(\'t{}\')</script>'.format(tokens[0]))
 
-        #Control file editing console
-        if message[0] == 'S':
-            if user!="admin":
-                return
-            if len(message)>1:
-                userstate.newuser(message[1:])
-                self.write_message("<p>Created user: {}</p>".format(message[1:]))
-            else:
-                userform = '<form action="javascript:newUser()">'
-                userform += '<input type="text" id="newuser"/><br />'
-                userform += '<input type="submit" value="Create"/></form>'
-                self.write_message(userform)
+        #Display information for a service
+        if message[0] == 's':
+            servpath = message[1:]
+            with open(servpath, "r") as sfile:
+                tablename = sfile.readline()
+                rafield = sfile.readline()
+                decfield = sfile.readline()
+            servname = re.split("\.",os.path.split(servpath)[1])[0]
+            result = "<h2>{}</h2>".format(servname)
+            result += "<p>Uses worktable {}, with RA={} and Dec={}</p>".format(tablename, rafield, decfield)
+            result += '<p>FITS file download: <a href="{0}/fits/{1}/{2}">{0}/fits/{1}/{2}</a></p>'.format(siteroot,re.split("_",userFolder)[1],servname)
+            result += '<p>Conesearch link: {0}/conesearch/{1}/{2}</p>'.format(siteroot,re.split("_",userFolder)[1],servname)
+            self.write_message(result)
 
         #Logout
         if message[0] == 'X':

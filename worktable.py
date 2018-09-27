@@ -254,11 +254,11 @@ class Worktable():
         if len(self.fielducd)<len(self.fieldnames):
             self.fielducd = ['']*len(self.fieldnames)
 
-    def conesearch(self, rafield, decfield, ra, dec, sr):
+    def conesearch(self, rafield, decfield, ra, dec, sr, siteroot):
         tabletypes = []
         for t in self.fieldtypes:
             tabletypes.append(dtypemap[t[2:]])
-        newtable = Table(names = self.fieldnames, dtype=tabletypes)   
+        newtable = Table(names = self.fieldnames, dtype=tabletypes)  
         ramin, ramax = ra-sr, ra+sr
         decmin, decmax = dec-ra, dec+sr
         rsq = sr*sr
@@ -271,11 +271,25 @@ class Worktable():
                         if row[decfield]<=decmax:
                             if (row[decfield]-dec)*(row[decfield]-dec)+(row[rafield]-ra)*(row[rafield]-ra)<=sr:                              
                                 newtable.add_row(row)
+                                for colindex, coltype in enumerate(self.fieldtypes):
+                                    if coltype[2:]=="file" or (coltype[2:]=="str" and row[colindex][-4]==".png"):
+                                        newtable[-1][colindex] = siteroot+"/"+newtable[-1][colindex]
         logfile = votable.from_table(newtable)
         logfile.to_xml("votable.xml")
         with open("votable.xml", "r") as voout:
             return voout.read()
 
+
+    def fitsout(self, filename="output.fits"):
+        tabletypes = []
+        for t in self.fieldtypes:
+            tabletypes.append(dtypemap[t[2:]])
+        newtable = Table(names = self.fieldnames, dtype=tabletypes)  
+        for row in self:
+            newtable.add_row(row)
+        newtable.write(filename, format="fits", overwrite=True)
+        with open(filename, "rb") as fitsfile:
+            return fitsfile.read()
 
 
     def unpack(self, targetpath=""):
@@ -580,6 +594,7 @@ def getnetwork(pathlist):
         for tab in rank:
             if rank[tab]==i:
                 level.append(tab)
+        level.sort()
         tree.append(level)
     return tree, parents, children
 
