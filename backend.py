@@ -95,23 +95,28 @@ def startBackend():
     print("Backend started")
 
 def svgbar(filename, n, arrow=False):
+    lw = 6
+    height = 120
+    mid = height/2
     os.system("cp ui/smallheader.svg "+filename) 
 
     cols = ["red", "green", "blue", "orange"]
     cols = ["#777777"]*10    
     svg = open(filename, "a")
     if arrow:
-        svg.write('<polygon points="10,79 25,85 10,91" style="fill:{0}; stroke:{0}" />'.format(cols[n]))
-        svg.write('<rect x="0" y="82" width="10" height="6" style="fill:{0}; stroke:{0}" />'.format(cols[n]))
+        svg.write('<polygon points="10,{1} 25,{2} 10,{3}" style="fill:{0}; stroke:{0}" />'.format(cols[n],mid-lw,mid,mid+lw))
+        svg.write('<rect x="0" y="{1}" width="10" height="{2}" style="fill:{0}; stroke:{0}" />'.format(cols[n],mid-lw/2, lw))
     else:
-        svg.write('<rect x="0" y="82" width="25" height="6" style="fill:{0}; stroke:{0}" />'.format(cols[n]))
+        svg.write('<rect x="0" y="{1}" width="25" height="{2}" style="fill:{0}; stroke:{0}" />'.format(cols[n],mid-lw/2, lw))
     svg.write('</svg>')
     svg.close()
 
 def svgline(filename, n, lmap):
+    width,height = 75,120
+    lw = 6
     os.system("cp ui/header.svg "+filename)
 
-    yoffset = n*170
+    yoffset = n*height
     svg = open(filename, "a")
     cols = ["red", "green", "blue", "orange"]
     cols = ["#777777"]*10    
@@ -119,27 +124,29 @@ def svgline(filename, n, lmap):
     for start in range(len(lmap)):
         for finish in lmap[start]:
             svg.write('<polygon points="')
-            a = 82+start*170
-            b = 82+finish*170
+            a = (height-lw)/2+start*height
+            b = (height-lw)/2+finish*height
             if a==b:
                 thiccor = 0
             else:
                 angle = np.fabs(np.arctan2(b,a))
-                thiccor = 6*np.sin(angle)
+                thiccor = lw*np.sin(angle)
             if b>a:
-              svg.write('0,{2} {0},{2} 100,{3} 100,{4} {1},{4} 0,{5}'.format(thiccor,
-                                                                             100-thiccor,
+              svg.write('0,{2} {0},{2} {6},{3} {6},{4} {1},{4} 0,{5}'.format(thiccor,
+                                                                             width-thiccor,
                                                                              a-yoffset, 
                                                                              b-yoffset, 
-                                                                             6+b-yoffset, 
-                                                                             6+a-yoffset))
+                                                                             lw+b-yoffset, 
+                                                                             lw+a-yoffset,
+                                                                             width))
             else:
-              svg.write('0,{2} {1},{3} 100,{3} 100,{4} {0},{5} 0,{5}'.format(thiccor,
-                                                                             100-thiccor,
+              svg.write('0,{2} {1},{3} {6},{3} {6},{4} {0},{5} 0,{5}'.format(thiccor,
+                                                                             width-thiccor,
                                                                              a-yoffset, 
                                                                              b-yoffset, 
-                                                                             6+b-yoffset, 
-                                                                             6+a-yoffset))
+                                                                             lw+b-yoffset, 
+                                                                             lw+a-yoffset,
+                                                                             width))
             svg.write('" style="fill:{0}; stroke:{0}" />'.format(cols[start]))
   
     svg.write("</svg>")
@@ -211,7 +218,7 @@ def projectInfo(userFolder):
                 else:
                     icon = "page"
                     wtfile = wtfile[:-4]
-                cells += '<img width="75px" height="75px" src="static/{}.svg" /><br />'.format(icon)
+                cells += '<img width="50px" height="50px" src="static/{}.svg" /><br />'.format(icon)
                 cells += '<p class="wttext">{}</p>'.format(wtfile)
                 cells += '</a></center></td>'        
             else:

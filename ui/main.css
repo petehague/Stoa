@@ -276,8 +276,8 @@ table.wttab {
 
 td.wtcell {
   align-content: center;
-  width: 180px;
-  height: 170px;
+  width: 130px;
+  height: 120px;
   border: 0px;
   margin: 0px;
   padding: 0px;
@@ -286,15 +286,15 @@ td.wtcell {
 
 td.spacecell {
   width: 25px;
-  height: 170px;
+  height: 120px;
   border: 0px;
   margin: 0px;
   padding: 0px;
 }
 
 td.linecell {
-  width: 100px;
-  height: 170px;
+  width: 75px;
+  height: 120px;
   border: 0px;
   margin: 0px;
   padding: 0px;
@@ -309,5 +309,9 @@ img.lineel {
 p.wttext {
   width: 100px;
   height: 20px;
+  font-size: 10px;  
+  font-style: normal;
+  font-variant: small-caps;
+  text-decoration: none;
+  color: #000055;
 }
-
