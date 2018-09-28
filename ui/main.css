@@ -125,7 +125,6 @@ a.white:active {
     background-color: #eeeeee;
     position: absolute;
     left: 0px;
-    width: 100%;
     top: 50px;
     height: 100%;
     margin: 0px;
@@ -137,9 +136,7 @@ a.white:active {
   background-color: rgba(0,0,0,0);
   position: absolute;
   left: 210px;
-  width: 100%;
   top: 10px;
-  height: 100%;
   margin: 0px;
   border: 0px;
   padding: 0px;
@@ -156,6 +153,13 @@ a.white:active {
     margin: 0px;
     border: 0px;
     padding: 0px;
+}
+
+#optionarea {
+    position: absolute;
+    top: 0px;
+    left: 400px;
+    width: 400px;
 }
 
 #viewer {
@@ -271,31 +275,32 @@ span.bold {
 }
 
 table.wttab {
-  border: 0px;
+  display: block;
+  border-style: none;
+  border-spacing: 0px;
 }
 
 td.wtcell {
-  align-content: center;
-  width: 130px;
+  width: 130px !important;
   height: 120px;
-  border: 0px;
+  border-style: none;
   margin: 0px;
   padding: 0px;
   word-wrap: break-word;
 }
 
 td.spacecell {
-  width: 25px;
+  width: 25px !important;
   height: 120px;
-  border: 0px;
+  border-style: none;
   margin: 0px;
   padding: 0px;
 }
 
-td.linecell {
-  width: 75px;
+td.linecell { 
+  width: 75px !important;
   height: 120px;
-  border: 0px;
+  border-style: none;
   margin: 0px;
   padding: 0px;
 }
@@ -307,11 +312,29 @@ img.lineel {
 }
 
 p.wttext {
+  text-align: center;
   width: 100px;
   height: 20px;
+  margin: auto;
   font-size: 10px;  
   font-style: normal;
   font-variant: small-caps;
   text-decoration: none;
   color: #000055;
+}
+
+img.wtimage {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+form.mainform {
+  position: absolute;
+  width: 350px;
+}
+
+input.absinp {
+  position: absolute;
+  left: 100px;
 }

@@ -170,9 +170,10 @@ def projectInfo(userFolder):
         outstring += '<p><a href="javascript:getPath(\'S\')">Create New User</a></p>'
         return outstring
 
-    outstring += '<p><a href="<a href="javascript:getPath(\'C\')>Create new worktable</a></p>'
+    outstring += '<p><a href="javascript:getPath(\'C\')">Create new worktable</a><br />'
+    outstring += '<a href="javascript:getPath(\'S\')">Create new service</a><br />'
+    outstring += '<a href="javascript:getPath(\'U\')">Browse user files</a></p>'
 
-    outstring += '<p><table class="wttab">'
     wtmap, parents, children = getnetwork(glob.glob(os.path.join(targetFolder, userFolder, "*.wtx")))
     for servfile in glob.glob(os.path.join(targetFolder, userFolder, "*.service")):
         servfilename = os.path.split(servfile)[1]
@@ -186,6 +187,8 @@ def projectInfo(userFolder):
                 if i==len(wtmap)-1:
                     wtmap.append([])
                 wtmap[i+1].append(servfilename)
+    fixwidth = len(wtmap)*130 + (len(wtmap)-1)*125
+    outstring += '<p><table class="wttab" width="{0}px"><tbody style="width: {0}px !important; display: table;">'.format(fixwidth)
 
     nrows = 0
     irn = np.random.randint(9999)
@@ -211,16 +214,16 @@ def projectInfo(userFolder):
                 wtpath = os.path.join(targetFolder, userFolder, wtfile)
                 cells += '<td class="wtcell">'
                 command = 't' if '.wtx' in wtpath else 's'
-                cells += '<center><a href="javascript:getPath(\'{}{}\')">'.format(command, wtpath)
+                cells += '<a href="javascript:getPath(\'{}{}\')">'.format(command, wtpath)
                 if ".service" in wtfile:
                     icon = "service"
                     wtfile = wtfile[:-8]
                 else:
                     icon = "page"
                     wtfile = wtfile[:-4]
-                cells += '<img width="50px" height="50px" src="static/{}.svg" /><br />'.format(icon)
+                cells += '<img class="wtimage" width="50px" height="50px" src="static/{}.svg" />'.format(icon)
                 cells += '<p class="wttext">{}</p>'.format(wtfile)
-                cells += '</a></center></td>'        
+                cells += '</a></td>'        
             else:
                 if c>0:
                     cells += '<td class="spacecell">&nbsp;</td>'
@@ -254,9 +257,9 @@ def projectInfo(userFolder):
                   svgfilename = svgfilename_list[0]
                 linkline = '<img class="lineel" src="/file/{}" />'.format(svgfilename)
                 cells += '<td class="linecell">{}</td>'.format(linkline)
-        outstring += '<tr>'+cells+'</tr>'
+        outstring += '<tr style="width: {}px !important;">'.format(fixwidth)+cells+'</tr>'
         #print(cells+"\n\n")
-    outstring += '</table></p>'
+    outstring += '</tbody></table></p>'
     return outstring
 
 def setTarget(t):
@@ -485,14 +488,6 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
         if message[0] == 'H':
             self.write_message(projectInfo(userFolder))
 
-        #Flag a target
-        if message[0] == 'F':
-            pipe.doFlag(message[1:])
-
-        #Unflag a target
-        if message[0] == 'U':
-            pipe.doUnflag(message[1:])
-
         #Display the action list
         if message[0] == 'A' or message[0] == 'a':
             if message[0] == 'a':
@@ -556,7 +551,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                 self.write_message(filehandler.stoa(targetFolder+fileReq))
 
         if message[0] == 'C':
-            makescreen = "<h2>Create New Worktable</h2>"
+            makescreen = '<h2 style="width: 500px;">Create New Worktable</h2>'
             if len(message)>1:
                 tokens = re.split(":", message[1:])
                 wtname = os.path.split(tokens[0])[1] 
@@ -570,29 +565,77 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                     oldwt = Worktable(tokens[2])
                     newwt.keyoff(oldwt, tokens[3:])
                 newwt.save(os.path.join(targetFolder, userFolder, wtname))
-                makescreen += "<p>Worktable created</p>"
                 os.system("rm -f "+os.path.join(targetFolder, userFolder,"log","*.svg"))
+                self.write_message("rt"+os.path.join(targetFolder, userFolder, os.path.join(targetFolder, userFolder, wtname)))
             else:
-                makescreen += '<p><form action="javascript:newWorktable()">'
-                makescreen += 'CWL File<br /><input list="cwlglob" id="cwlfile" /><br />'
+                makescreen += '<div width="1000px">&nbsp;</div><form class="mainform" action="javascript:newWorktable()">'
+                makescreen += 'CWL File<input class="absinp" list="cwlglob" id="cwlfile" /><br /><br />'
                 makescreen += '<datalist id="cwlglob">'
                 for filename in glob.glob(os.path.join(targetFolder,userFolder,"*.cwl")):
                     makescreen += '<option value="{}" />'.format(filename)
                 makescreen += '</datalist>'
-                makescreen += 'YML File<br /><input list="ymlglob" id="ymlfile" /><br />' 
+                makescreen += 'YML File<input class="absinp" list="ymlglob" id="ymlfile" /><br /><br />' 
                 makescreen += '<datalist id="ymlglob">'
                 for filename in glob.glob(os.path.join(targetFolder,userFolder,"*.yml")):
                     makescreen += '<option value="{}" />'.format(filename)
                 makescreen += '</datalist>'
-                makescreen += '<input type="checkbox" id="keyoff" value="Keyoff" />Key off table<br />'
-                makescreen += 'Parent table<br /><input list="wtxglob" id="wtxfile" /><br />'
+                makescreen += '<input type="checkbox" id="keyoff" value="Keyoff" onclick="toggleOptionArea()" />Key from other table<br /><br />'
+                makescreen += '<input type="submit" value="Create" /></p>'
+
+                makescreen += '<div id="optionarea" style="visibility: hidden;">Parent table<input class="absinp" list="wtxglob" id="wtxfile" onchange="getFieldList()"/><br /><br />'
                 makescreen += '<datalist id="wtxglob">'
                 for filename in glob.glob(os.path.join(targetFolder,userFolder,"*.wtx")):
                     makescreen += '<option value="{}" />'.format(filename)
                 makescreen += '</datalist>'
-                makescreen += 'Fields to key off (seperate with :)<br/><input type="text" id="keyfields" /><br />'
+                makescreen += 'Field names: <div id="fieldfield"></div><br />'
+                makescreen += 'Key fields <input class="absinp" type="text" id="keyfields" /><br /><br />(seperate with :)'
+                makescreen += '</div></form>'
+            self.write_message(makescreen)
+
+        if message[0] == 'F':
+            wt = Worktable(message[1:])
+            flist = ""
+            for field in wt.fieldnames[1:]:
+                flist += '<a href="javascript:setField(\'{0}\')">{0}</a>&nbsp;'.format(field)
+            self.write_message("f"+flist)
+
+        if message[0] == 'S':
+            makescreen = '<h2 style="width: 500px;">Create New Service</h2>'
+            if len(message)>1:
+                tokens = re.split(":", message[1:])
+                name = tokens[0]
+                wtname = os.path.split(tokens[1])[1]
+                rafield = tokens[2]
+                decfield = tokens[3]
+                with open(os.path.join(targetFolder, userFolder, name+".service"),"w") as servicefile:
+                    servicefile.write(wtname+"\n")
+                    servicefile.write(rafield+"\n")
+                    servicefile.write(decfield+"\n")
+                self.write_message("rs"+os.path.join(targetFolder, userFolder, name+".service"))
+                os.system("rm -f "+os.path.join(targetFolder, userFolder,"log","*.svg"))
+                return
+            else:
+                makescreen += '<p><form class="mainform" action="javascript:newService()">'
+                makescreen += 'Name<input class="absinp" type="text" id="servicename" /><br /><br />'
+                makescreen += 'Worktable<input class="absinp" list="wtxglob" id="wtxfile" onchange="getFieldList()"/><br /><br />'
+                makescreen += '<datalist id="wtxglob">'
+                for filename in glob.glob(os.path.join(targetFolder,userFolder,"*.wtx")):
+                    makescreen += '<option value="{}" />'.format(filename)
+                makescreen += '</datalist>'
+                makescreen += 'Field names: <div id="fieldfield"></div><br />'
+                makescreen += 'RA:Dec fields <input class="absinp" type="text" id="keyfields" /><br /><br />'
                 makescreen += '<input type="submit" value="Create" /></form></p>'
             self.write_message(makescreen)
+
+        if message[0] == 'U':
+            filelist = '<h2 style="width: 500px">Files in {}</h2><br />'.format(userFolder)
+            for item in glob.glob(os.path.join(targetFolder, userFolder, "*")):
+                filelist += '<a href="file/{0}/{1}">{1}</a><br />'.format(userFolder, os.path.split(item)[1])
+            filelist += '<div style="position:fixed;top: 150px;left:800px"><form class="mainform">'
+            filelist += '<h3>Upload a File</h3><br /><input type="file">'
+            filelist += '</form></div>'
+            self.write_message(filelist)
+        
 
         if message[0] == 'z':
             wt = Worktable(message[1:])
@@ -600,6 +643,11 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             wt.save(message[1:])
   
         if message[0] == 'k':
+            os.system("rm -f "+os.path.join(targetFolder, userFolder,"log","*.svg"))
+            if ".service" in message:
+                os.remove(message[1:])
+                self.write_message("rH")
+                return
             wt = Worktable(message[1:])
             parents = wt.parenttables
             children = wt.childtables
@@ -614,8 +662,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                     wt.parenttables.remove(message[1:])
                 cwt.save(os.path.join(targetFolder,c))
             os.remove(message[1:])     
-            os.system("rm -f "+os.path.join(targetFolder, userFolder,"log","*.svg"))
-            self.write_message('<script  type="text/javascript">getPath(\'H\')</script>')
+            self.write_message('rH')
 
         #Display a results table
         if message[0] == 't':
@@ -694,6 +741,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                 decfield = sfile.readline()
             servname = re.split("\.",os.path.split(servpath)[1])[0]
             result = "<h2>{}</h2>".format(servname)
+            result += '<a href="javascript:getPath(\'k{}\')">Delete Service</a><br />'.format(servpath)
             result += "<p>Uses worktable {}, with RA={} and Dec={}</p>".format(tablename, rafield, decfield)
             result += '<p>FITS file download: <a href="{0}/fits/{1}/{2}">{0}/fits/{1}/{2}</a></p>'.format(siteroot,re.split("_",userFolder)[1],servname)
             result += '<p>Conesearch link: {0}/conesearch/{1}/{2}</p>'.format(siteroot,re.split("_",userFolder)[1],servname)

@@ -22,6 +22,34 @@ function newWorktable(filename) {
   }
 }
 
+function newService(filename) {
+  servicename = document.getElementById("servicename").value
+  wtxname = document.getElementById("wtxfile").value
+  radec = document.getElementById("keyfields").value
+  ws.send("S"+servicename+":"+wtxname+":"+radec)
+}
+
+function toggleOptionArea() {
+  thediv = document.getElementById("optionarea");
+  if (document.getElementById("keyoff").checked) {
+    thediv.style.visibility="visible"
+  } else {
+    thediv.style.visibility="hidden"
+  }
+}
+
+function getFieldList() {
+  ws.send("F"+document.getElementById("wtxfile").value)  
+}
+
+function setField(fieldname) {
+  keyfields = document.getElementById("keyfields").value
+  if (keyfields.length>0) {
+	document.getElementById("keyfields").value += ":"
+  }
+  document.getElementById("keyfields").value+=fieldname
+}
+
 function addRow(tabname) {
   var fields = document.getElementsByClassName("newrow")
   
@@ -42,6 +70,14 @@ ws.onmessage = function(evt) {
         ws.send("t"+document.getElementById("monitor").innerHTML)
       }  
     }
+    return
+  }
+  if (msg.charAt(0)=="r") {
+    ws.send(msg.substr(1))
+    return
+  }
+  if (msg.charAt(0)=="f") {
+    document.getElementById("fieldfield").innerHTML=msg.substr(1)
     return
   }
   if (msg.charAt(0)=="+") {
