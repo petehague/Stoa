@@ -3,7 +3,7 @@ function getPath(pathname) {
 }
 
 function newUser() {
-  ws.send('S'+document.getElementById("newuser").value)
+  ws.send('N'+document.getElementById("newuser").value)
 }
 
 function commitFile(filename) {

@@ -167,7 +167,7 @@ def projectInfo(userFolder):
         for uname in usernames:
             outstring += '&nbsp;-&nbsp;{}<br />'.format(uname)
         outstring += '</p>'
-        outstring += '<p><a href="javascript:getPath(\'S\')">Create New User</a></p>'
+        outstring += '<p><a href="javascript:getPath(\'N\')">Create New User</a></p>'
         return outstring
 
     outstring += '<p><a href="javascript:getPath(\'C\')">Create new worktable</a><br />'
@@ -746,6 +746,19 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             result += '<p>FITS file download: <a href="{0}/fits/{1}/{2}">{0}/fits/{1}/{2}</a></p>'.format(siteroot,re.split("_",userFolder)[1],servname)
             result += '<p>Conesearch link: {0}/conesearch/{1}/{2}</p>'.format(siteroot,re.split("_",userFolder)[1],servname)
             self.write_message(result)
+
+        #Add a new user
+        if message[0] == "N":
+            if user!="admin":
+                return
+            if len(message)>1:
+                userstate.newuser(message[1:])
+                self.write_message("<p>Created user: {}</p>".format(message[1:]))
+            else:
+                userform = '<form action="javascript:newUser()">'
+                userform += '<input type="text" id="newuser"/><br />'
+                userform += '<input type="submit" value="Create"/></form>'
+                self.write_message(userform)
 
         #Logout
         if message[0] == 'X':
