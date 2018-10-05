@@ -170,9 +170,9 @@ def projectInfo(userFolder):
         outstring += '<p><a href="javascript:getPath(\'N\')">Create New User</a></p>'
         return outstring
 
-    outstring += '<p><a href="javascript:getPath(\'C\')">Create new worktable</a><br />'
-    outstring += '<a href="javascript:getPath(\'S\')">Create new service</a><br />'
-    outstring += '<a href="javascript:getPath(\'U\')">Browse user files</a></p>'
+    outstring += '<ul class="topmenu"><li class="topitem"><a href="javascript:getPath(\'C\')">Create new worktable</a></li>'
+    outstring += '<li class="topitem"><a href="javascript:getPath(\'S\')">Create new service</a></li>'
+    outstring += '<li class="topitem"><a href="javascript:getPath(\'U\')">Browse user files</a></li></ul>'
 
     wtmap, parents, children = getnetwork(glob.glob(os.path.join(targetFolder, userFolder, "*.wtx")))
     for servfile in glob.glob(os.path.join(targetFolder, userFolder, "*.service")):
@@ -631,8 +631,8 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             filelist = '<h2 style="width: 500px">Files in {}</h2><br />'.format(userFolder)
             for item in glob.glob(os.path.join(targetFolder, userFolder, "*")):
                 filelist += '<a href="file/{0}/{1}">{1}</a><br />'.format(userFolder, os.path.split(item)[1])
-            filelist += '<div style="position:fixed;top: 150px;left:800px"><form class="mainform">'
-            filelist += '<h3>Upload a File</h3><br /><input type="file">'
+            filelist += '<div style="position:fixed;top: 150px;left:800px"><form class="mainform" enctype="multipart/form-data" action="/fup" method="post">'
+            filelist += '<h3>Upload a File</h3><br /><input type="file" name="upfile"/><br /><input type="submit" value="Upload" />'
             filelist += '</form></div>'
             self.write_message(filelist)
         
@@ -672,7 +672,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             except: 
                 return
             monitor = "<div id='monitor' style='visibility: hidden'>"+wtname+"</div>"
-            tab = '<p><h2>Worktable: {0}</h2><br /><a href="javascript:getPath(\'P{1}\')">Run Entire Table</a><br /><br /><a href="javascript:getPath(\'z{1}\')">Clear output</a><br /><a href="javascript:getPath(\'k{1}\')">Delete Table</a></p><p><table id = "Worktable"><tr><th></th>'.format(os.path.split(wtname)[1], wtname)
+            tab = '<p><h2>Worktable: {0}</h2><ul class="topmenu"><li class="topitem"><a href="javascript:getPath(\'P{1}\')">Run Entire Table</a></li><li class="topitem"><a href="javascript:getPath(\'z{1}\')">Clear output</a></li><li class="topitem"><a href="javascript:getPath(\'k{1}\')">Delete Table</a></li></ul><p><table id = "Worktable"><tr><th></th>'.format(os.path.split(wtname)[1], wtname)
             for fname in wt.fieldnames[1:]:
                 tab += "<th>{}</th>".format(fname)
             tab += "</tr><tr><th></th>"
@@ -746,6 +746,16 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             result += '<p>FITS file download: <a href="{0}/fits/{1}/{2}">{0}/fits/{1}/{2}</a></p>'.format(siteroot,re.split("_",userFolder)[1],servname)
             result += '<p>Conesearch link: {0}/conesearch/{1}/{2}</p>'.format(siteroot,re.split("_",userFolder)[1],servname)
             self.write_message(result)
+
+        if message[0] == "E":
+            editor = "<p><a href=\"javascript:getPath('{}')\">Reset</a><br />".format(message)
+            editor += "<a href=\"javascript:commitFile('e{}')\">Commit</a><vr />".format(message[1:])
+            editor += '<textarea rows="10" columns="80" style="width: 600px; height: 1000px;">'
+            userfile = open(message[1:],"r")
+            for line in userfile:
+                editor += line
+            editor += '</textarea>'
+            self.write_message(editor)
 
         #Add a new user
         if message[0] == "N":

@@ -61,6 +61,22 @@ class securedStatic(tornado.web.StaticFileHandler):
     def placeholder():
         return 0
 
+class fileUpload(tornado.web.RequestHandler):
+    def post(self):
+        uname = self.get_secure_cookie("stoa-user")
+        if not uname:
+            return
+        fileinfo = self.request.files['upfile'][0]
+        filename = fileinfo['filename']
+        destfolder = os.path.join(backend.targetFolder,"user_"+uname.decode())
+        with open(os.path.join(destfolder, filename),'wb' if type(fileinfo['body']) is bytes else 'w') as dest:
+            dest.write(fileinfo['body'])
+        self.render(backend.webPath+"ui/index.html",
+                    websocketRoot=wsroot,
+                    textContent=backend.projectInfo("user_"+uname.decode()),
+                    hostname=thishost,
+                    action='')
+        
 
 class Authenticate(tornado.web.RequestHandler):
     def get(self):
@@ -102,7 +118,8 @@ app = tornado.web.Application([
     (r"/stage/(.*)", securedStatic, {'path': os.getcwd()+"/usercache"}),
     (r"/docs/(.*)", securedStatic, {'path': os.getcwd()+"/docs/_build/html"}),
     (r"/conesearch/(.*)", backend.ConeSearchHandler),
-    (r"/fits/(.*)", backend.FitsHandler)
+    (r"/fits/(.*)", backend.FitsHandler),
+    (r"/fup", fileUpload),
     ], **settings)
 
 print("Starting backend at {}".format(backend.targetFolder))

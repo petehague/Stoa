@@ -6,10 +6,6 @@ function newUser() {
   ws.send('N'+document.getElementById("newuser").value)
 }
 
-function commitFile(filename) {
-  ws.send("y"+filename)
-} 
-
 function newWorktable(filename) {
   cwlname = document.getElementById("cwlfile").value
   ymlname = document.getElementById("ymlfile").value

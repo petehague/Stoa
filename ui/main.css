@@ -338,3 +338,17 @@ input.absinp {
   position: absolute;
   left: 100px;
 }
+
+ul.topmenu {
+  width: 800px;
+  list-style-type: none;
+  padding: 0px;
+  margin: 0px;
+}
+
+li.topitem {
+  display: inline;
+  padding-right: 40px;
+  padding-left: 0px;
+  margin: 0px;
+}
