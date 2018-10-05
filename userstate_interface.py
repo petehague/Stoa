@@ -3,11 +3,7 @@ import userstate_pb2
 import userstate_pb2_grpc
 from yml import yamler
 
-config = yamler(open("stoa.yml", "r"))
-if "UserstateHost" in config['stoa-info']:
-    userstatehost = config['stoa-info']['UserstateHost'].strip()
-else:
-    userstatehost = "userstate"
+userstatehost = "localhost"
 userstateConnect = grpc.insecure_channel('{}:6999'.format(userstatehost))
 userstate = userstate_pb2_grpc.UserstateStub(userstateConnect)
 

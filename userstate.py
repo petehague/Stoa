@@ -69,6 +69,8 @@ class userstateServer(userstate_pb2_grpc.UserstateServicer):
             if len(users)==0:
                 c.execute("INSERT INTO tblUsers (UID, Username) VALUES (0,'admin')")
                 userspace['admin'] = userState()
+                c.execute("INSERT INTO tblUsers (UID, Username) VALUES (1,'guest')")
+                userspace['guest'] = userState()
         return userstate_pb2.statReply(status="OK")
 
     def newuser(self, request, context):
