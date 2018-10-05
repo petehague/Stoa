@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns="http://www.w3.org/2000/svg" version="1.1" width="32" height="32">
+  <rect x="5" y="1" width="10" height="10" style="fill:white; stroke:white" />
+  <rect x="6" y="2" width="8" height="8" style="fill:#333333; stroke:white" />
+  <polygon points="5,12 3,15 17,15 15,12" style="fill:#333333; stroke:white" />
+  
+  <rect x="19" y="18" width="10" height="10" style="fill:white; stroke:white" />
+  <rect x="20" y="19" width="8" height="8" style="fill:#333333; stroke:white" />
+  <polygon points="19,29 17,32 31,32 29,29" style="fill:#333333; stroke:white" />
+  
+  <rect x="7" y="18" width="3" height="10" style="fill: green; stoke: green" />
+  <rect x="7" y="25" width="8" height="3" style="fill: green; stoke: green" />
+  <polygon points="18,27 15,23 15,30" style="fill:green; stoke: green" />
+</svg>
