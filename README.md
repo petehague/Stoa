@@ -6,7 +6,7 @@ This software is still in development; users are encouraged to contact prh44 (AT
 
 # How to Install
 
-STOA requires Python 3 and some Python libraries, all available through `pip` - we recommend that you use a virtual environment when trying this out. When you have one set up, install `numpy`, `astropy`,`cwltool`,`gpcio-tools` and `tornado` and you should be good to go
+STOA requires Python 3 and some Python libraries, all available through `pip` - we recommend that you use a virtual environment when trying this out. When you have one set up, install `numpy`, `astropy`,`cwltool`,`grpcio-tools` and `tornado` and you should be good to go
 
 In order to prepare STOA to run, type
 
