@@ -1,10 +1,5 @@
 stoa-info:
   project-name: Example Project
-  port: 9000
-  workspace: example
-  filehandler:
-    pattern: *.txt
-    script: example/display.py
-  reftable:
-    name: VO Table
-    coords: example/coords.txt
+  UserStateHost: localhost
+  ActionHost: localhost
+

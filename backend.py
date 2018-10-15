@@ -4,7 +4,6 @@ import re
 import os
 import sys
 import glob
-import pipe
 import xml.etree.ElementTree as et
 import userstate
 import sqlite3 as sql
@@ -39,19 +38,8 @@ siteroot = "http://127.0.0.1:8888"
 scriptPath = os.path.realpath(__file__)
 webPath = os.path.split(scriptPath)[0] + "/"
 
-config = yamler(open("stoa.yml", "r"))
-projectname = config['stoa-info']['project-name']
+projectname = "Untitled Project"
 
-handlerpath = config['stoa-info']['filehandler']['script']
-handlerpattern = config['stoa-info']['filehandler']['pattern']
-handler_name, fext = os.path.splitext(os.path.split(handlerpath)[-1])
-filehandler = load_source(handler_name,handlerpath)
-
-reftables = {}
-if 'reftable' in config['stoa-info']:
-    reftables[config['stoa-info']['reftable']['name']]=config['stoa-info']['reftable']['coords']
-
-obsfile = "" #TODO: Link this value to config file
 
 stopCommand = "<a href=\"javascript:getPath('r')\">Click here to stop batch</a>"
 
@@ -273,8 +261,6 @@ def setTarget(t):
     if t[-1] != '/':
         t += '/'
     targetFolder = t
-    pipe.setProctabPath(t)
-
 
 def current(userip):
     """
@@ -327,16 +313,6 @@ def getwsroot(userip):
         return userstate.get(session[userip], "wsroot")
     else:
         return False
-
-def makeFlagList():
-    """
-    Calls the pipeline to get a list of the flagged paths
-
-    :return: List of paths
-    """
-    return pipe.doRun("none")
-    # Add a caching system later
-
 
 def xmlListing(path):
     """
@@ -488,25 +464,6 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
         if message[0] == 'H':
             self.write_message(projectInfo(userFolder))
 
-        #Display the action list
-        if message[0] == 'A' or message[0] == 'a':
-            if message[0] == 'a':
-                flagToggle = "<p><a href=\"javascript:getPath('A')\">Run all</a><br />Run flagged</p>"
-                runtype = 'f'
-            else:
-                flagToggle = "<p>Run all<br /><a href=\"javascript:getPath('a')\">Run flagged</a></p>"
-                runtype = 'R'
-            commandtext = ""
-            commandlist = pipe.doActlist("")
-            #if not action.isFree(session[userip]):
-            #    commandtext += "<p>There is currently an action in progress<br />"+stopCommand+"</p>"
-            monitor = "<div id=monitor></div>"
-            for command in commandlist:
-                commandtext += '<a href="javascript:getPath(\'{0}{1}\')">\
-                                {1}</a><br />'.format(runtype,command.strip())
-            self.write_message("#"+monitor+flagToggle+commandtext)
-            self.write_message("+<div id='conback'><p class='console'></p></div>")
-
         if message[0] == 'P':
             wtfile = message[1:].strip()
             wt = Worktable(wtfile)
@@ -528,27 +485,10 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             print(command, path)
             action.push(session[userip],command,path,int(bindex))
 
-        #Run an action
-        if message[0] == 'R' or message[0] == 'f':
-            #monitor = "<div id=monitor></div>"
-            #self.write_message("#"+monitor+"Processing command "+message[1:]+"...<br />"+stopCommand)
-            command = message[1:].strip()
-            tasklist[session[userip]] = []
-            for path in pipe.commandgen(command, targetFolder, noproc=True):
-                action.push(session[userip],command, path)
-                tasklist[session[userip]].append([command, path, '<span class="yellow">Working</span>'])
-
         #Terminate an action
         if message[0] == 'r':
             # userspace[user].proc.terminate()
             self.write_message("#Action terminated<br />"+stopCommand)
-
-        #Display a fits image
-        if message[0] == 'D':
-            fileReq = message[1:]
-            if fnmatch(fileReq,handlerpattern):
-                self.write_message("+Loading image...")
-                self.write_message(filehandler.stoa(targetFolder+fileReq))
 
         if message[0] == 'C':
             makescreen = '<h2 style="width: 500px;">Create New Worktable</h2>'

@@ -8,6 +8,7 @@ import sys
 import socket
 import backend
 import re
+from yml import yamler
 
 if len(sys.argv) > 2:
     portnum = int(sys.argv[2])
@@ -20,6 +21,14 @@ wsroot = "ws://{}:{}/ws".format(socket.gethostname(), portnum)
 thishost = backend.siteroot.split(':')[1][2:]
 
 backend.setTarget(sys.argv[1])
+
+if os.path.exists(os.path.join(sys.argv[1], "stoa.yml")):
+    config = yamler(open(os.path.join(sys.argv[1], "stoa.yml"),"r"))
+    backend.projectname = config['stoa-info']['project-name']
+else:
+    configfile = open(os.path.join(sys.argv[1], "stoa.yml"), "w")
+    configfile.write("stoa-info:\n  project-name: Untitled Project\n  ActionHost: localhost\n  UserstateHost: localhost")
+        
 
 ioloophandle = ''
 

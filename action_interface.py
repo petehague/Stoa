@@ -3,13 +3,7 @@ import action_pb2
 import action_pb2_grpc
 from yml import yamler
 
-config = yamler(open("stoa.yml", "r"))
-
-# Connection to action server and userstate server
-if "ActionHost" in config['stoa-info']:
-    acthost = config['stoa-info']["ActionHost"].strip()
-else:
-    acthost = "action"
+acthost = "localhost"
 actConnect = grpc.insecure_channel('{}:7000'.format(acthost))
 actions = action_pb2_grpc.ActionStub(actConnect)
 
