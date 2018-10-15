@@ -42,18 +42,16 @@ def ymlvars(ymlfile, output, pathname):
     f1.close()
     f2.close()
 
-def cwlinvoke(pathname, taskfile, params):
+def cwlinvoke(pathname, taskfile, params, userPath):
     oldpath = os.environ["PATH"]
-    os.environ["PATH"] += os.pathsep + pathname
-    print(params)
+    os.environ["PATH"] += ":" + userPath
 
     taskfac = cwltool.factory.Factory()
     t = taskfac.make(pathname+os.sep+taskfile)
-    params["stoafolder"]=os.path.join(os.getcwd(),pathname)
+    params["preserve-environment"]="PATH"
     result = t(**params)
 
     os.environ["PATH"] = oldpath
-    print(result)
     return result
 
 def parsecwloutput(pathname, result, fields, l=False):
@@ -95,6 +93,7 @@ def ExecCWL(cmdFile, pathname, bindex):
     success = 0
 
     wt = Worktable(cmdFile)
+    userPath = os.path.split(cmdFile)[0]
     wtFile = cmdFile
     cmdFile = "workflow.cwl"
     wt.unpack(pathname)
@@ -108,7 +107,7 @@ def ExecCWL(cmdFile, pathname, bindex):
                 cmdDict[wt.fieldnames[i]] = contents
 
     try:
-        result = cwlinvoke(pathname, cmdFile, cmdDict)
+        result = cwlinvoke(pathname, cmdFile, cmdDict, userPath)
         #writeyaml(result, pathname+"/.pipelog.txt")
     except WorkflowException as werr:
         success = 1

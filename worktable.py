@@ -337,12 +337,21 @@ class Worktable():
             self.template = yamler(open(filename, "r"))
 
     def addtask(self, filename):
-        self.task.append([filename, yamler(open(filename, "r"))])
+        self.tasks.append([filename, yamler(open(filename, "r"))])
+
+    def removetask(self, filename):
+        del selfs.task[filename]
 
     def addextra(self, filename):
         self.otherfiles.append(filename)
         with ZipFile(self.lastfilename, "a") as wtab:
             wtab.write(filename, os.path.split(filename)[1])
+
+    def removeextra(self, filename):
+        del self.otherfiles[filename]
+        pathname = os.path.split(self.unpack(),0)
+        os.remove(os.path.join(pathname, filename))
+        #Add repack code
 
     def setfields(self, flist):
         self.fieldnames = flist
@@ -634,6 +643,12 @@ if __name__=="__main__":
             wt.save(sys.argv[2])
         else:
             wt.addextra(sys.argv[3])
+
+    if cmd=="remove":
+        wt = Worktable(sys.argv[2])
+        if ".cwl" in sys.argv[3]:
+            wt.removetask(sys.argv[3])
+            wt.save(sys.argv[2])
 
     if cmd=="show":
         wt = Worktable(sys.argv[2])

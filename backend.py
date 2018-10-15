@@ -652,17 +652,52 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             parents = wt.parenttables
             children = wt.childtables
             for p in parents:
-                pwt = Worktable(os.path.join(targetFolder,p))
-                if p in wt.childtables:
-                    wt.childtables.remove(message[1:])
-                pwt.save(os.path.join(targetFolder,p))
+                pwt = Worktable(os.path.join(targetFolder,userFolder,p))
+                if message[1:] in pwt.childtables:
+                    pwt.childtables.remove(message[1:])
+                pwt.save(os.path.join(targetFolder,userFolder,p))
             for c in children:
-                cwt = Worktable(os.path.join(targetFolder,c))
-                if c in wt.parenttables:
-                    wt.parenttables.remove(message[1:])
-                cwt.save(os.path.join(targetFolder,c))
+                cwt = Worktable(os.path.join(targetFolder,userFolder,c))
+                if message[1:] in cwt.parenttables:
+                    cwt.parenttables.remove(message[1:])
+                cwt.save(os.path.join(targetFolder,userFolder,c))
             os.remove(message[1:])     
             self.write_message('rH')
+
+        if message[0] == 'N':
+            os.system("rm -f "+os.path.join(targetFolder, userFolder,"log","*.svg"))
+            if ':' in message:
+                tokens = re.split(":",message[1:])
+                wt = Worktable(os.path.join(targetFolder, userFolder, tokens[0]))
+                os.rename(os.path.join(targetFolder, userFolder, tokens[0]),
+                          os.path.join(targetFolder, userFolder, tokens[1]))
+                for filename in wt.parenttables:
+                    pwt = Worktable(os.path.join(targetFolder, userFolder, filename))
+                    if tokens[0] in pwt.childtables:
+                        pwt.childtables.remove(tokens[0])
+                        pwt.childtables.append(tokens[1])
+                    pwt.save(os.path.join(targetFolder, userFolder, filename))
+                for filename in wt.childtables:
+                    cwt = Worktable(os.path.join(targetFolder, userFolder, filename))
+                    if tokens[0] in cwt.parenttables:
+                        cwt.parenttables.remove(tokens[0])
+                        cwt.parenttables.append(tokens[1])
+                    cwt.save(os.path.join(targetFolder, userFolder, filename))
+                self.write_message('rt'+tokens[1])
+            else:
+                makescreen = '<h2>Rename {}</h2>'.format(message[1:])
+                makescreen += '<p><form class="mainform" action="javascript:rename(\'{}\')">'.format(message[1:])
+                makescreen += 'New Name<input class="absinp" type="text" id="newname" value="{}"/><br /><br />'.format(message[1:])
+                makescreen += '<input type="submit" value="Rename" /></form></p>'
+                self.write_message(makescreen)
+
+        if message[0] == 'E':
+            wt = Worktable(os.path.join(targetFolder, userFolder, message[1:]))
+            result = '<h2>{}</h2><p>'.format(message[1:])
+            for filename in wt.cat():
+                result += filename+"<br />"
+            result += "</p>"
+            self.write_message(result)
 
         #Display a results table
         if message[0] == 't':
@@ -672,7 +707,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             except: 
                 return
             monitor = "<div id='monitor' style='visibility: hidden'>"+wtname+"</div>"
-            tab = '<p><h2>Worktable: {0}</h2><ul class="topmenu"><li class="topitem"><a href="javascript:getPath(\'P{1}\')">Run Entire Table</a></li><li class="topitem"><a href="javascript:getPath(\'z{1}\')">Clear output</a></li><li class="topitem"><a href="javascript:getPath(\'k{1}\')">Delete Table</a></li></ul><p><table id = "Worktable"><tr><th></th>'.format(os.path.split(wtname)[1], wtname)
+            tab = '<p><h2>Worktable: {0}</h2><ul class="topmenu"><li class="topitem"><a href="javascript:getPath(\'P{1}\')">Run Entire Table</a></li><li class="topitem"><a href="javascript:getPath(\'z{1}\')">Clear output</a></li><li class="topitem"><a href="javascript:getPath(\'k{1}\')">Delete Table</a></li><li class="topitem"><a href="javascript:getPath(\'N{0}\')">Rename Table</a></li><li><a href="javascript:getPath(\'E{0}\')">Edit Table</a></li></ul><p><table id = "Worktable"><tr><th></th>'.format(os.path.split(wtname)[1], wtname)
             for fname in wt.fieldnames[1:]:
                 tab += "<th>{}</th>".format(fname)
             tab += "</tr><tr><th></th>"

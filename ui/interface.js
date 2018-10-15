@@ -6,6 +6,11 @@ function newUser() {
   ws.send('N'+document.getElementById("newuser").value)
 }
 
+function rename(oldname) {
+  newname = document.getElementById("newname").value
+  ws.send("N"+oldname+":"+newname)
+}
+
 function newWorktable(filename) {
   cwlname = document.getElementById("cwlfile").value
   ymlname = document.getElementById("ymlfile").value
