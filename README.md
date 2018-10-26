@@ -22,5 +22,5 @@ to run the demo. Go to your browser and visit `localhost:9000` to try it out
 
 Log in as `guest` (no password is required) and try to create a worktable to implement the 'find' command. Once this table is present, go into it and add a new row with 'product' as its input, and then run that row.
 
-More tutorial material will be added soon.
+For more tutorial information, take a look at the user guide - `manual.pdf`
 
