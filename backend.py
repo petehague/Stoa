@@ -661,16 +661,16 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             tab += '</tr><tr><td colspan="{}"></td></tr>'.format(len(wt.fieldtypes))
             alternator = 0
             lastbindex = -1
-            for row in wt:
+            for rindex,row in enumerate(wt):
                 bindex = row[0]
                 rowfolder = row[1]
                 if bindex==lastbindex:
                     tab += '<tr class="row{}"><th>&nbsp;</th>'.format(alternator)
                 else:
-                    tab +='<tr class="row{}"><th><a href="javascript:getPath(\'p{}:{}:{}\')">run</a></th>'.format(alternator, wtname, rowfolder, bindex)
+                    tab +='<tr class="row{}"><th class="track{}"><a href="javascript:getPath(\'p{}:{}:{}\')">run</a></th>'.format(alternator, wt.track[rindex], wtname, rowfolder, bindex)
                 alternator = 1-alternator
                 colid = 1
-                for col in row[1:]:
+                for cindex,col in enumerate(row[1:]):
                     coltext = str(col)
                     ishtml = False
                     if ".txt" in coltext:
@@ -685,7 +685,10 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                         fulltext = coltext #TODO add a nice Javascript tooltip
                         if not ishtml and len(coltext)>50:
                             coltext = coltext[0:13]+"...."+coltext[-33:]
-                        tab+="<td>{}</td>".format(coltext)
+                        if wt.fieldtypes[cindex+1][0]=='I':
+                          tab+='<td><dev id="input_{0}_{1}"><a href="javascript:editInput({0},{1})">{2}</a></dev></td>'.format(rindex,cindex+1,coltext)
+                        else:
+                          tab+="<td>{}</td>".format(coltext)
                     colid += 1
                 tab += "</tr>"
                 lastbindex = bindex
@@ -710,17 +713,29 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
         #Display information for a service
         if message[0] == 's':
             servpath = message[1:]
-            with open(servpath, "r") as sfile:
-                tablename = sfile.readline()
-                rafield = sfile.readline()
-                decfield = sfile.readline()
-            servname = re.split("\.",os.path.split(servpath)[1])[0]
-            result = "<h2>{}</h2>".format(servname)
-            result += '<a href="javascript:getPath(\'k{}\')">Delete Service</a><br />'.format(servpath)
-            result += "<p>Uses worktable {}, with RA={} and Dec={}</p>".format(tablename, rafield, decfield)
-            result += '<p>FITS file download: <a href="{0}/fits/{1}/{2}">{0}/fits/{1}/{2}</a></p>'.format(siteroot,re.split("_",userFolder)[1],servname)
-            result += '<p>Conesearch link: {0}/conesearch/{1}/{2}</p>'.format(siteroot,re.split("_",userFolder)[1],servname)
-            self.write_message(result)
+            if ".action" in message[1:]:
+                with open(servpath, "r") as afile:
+                    atype = afile.readline()
+                    tabptr = afile.readline()
+                    param = afile.readline()
+                actname = re.split("\.",os.path.split(servpath)[1])[0]
+                result = "<h2>{}: {}</h2>".format(atype, actname)
+                result += '<a href="javascript:getPath(\'k{}\')">Delete Service</a><br />'.format(servpath)
+                result += "<p>Uses worktable {}</p>".format(tablename)
+                if atype=="prompt":
+                    result += "<p>Time to run table: {}</p>".format(param)
+            else:
+                with open(servpath, "r") as sfile:
+                    tablename = sfile.readline()
+                    rafield = sfile.readline()
+                    decfield = sfile.readline()
+                servname = re.split("\.",os.path.split(servpath)[1])[0]
+                result = "<h2>{}</h2>".format(servname)
+                result += '<a href="javascript:getPath(\'k{}\')">Delete Service</a><br />'.format(servpath)
+                result += "<p>Uses worktable {}, with RA={} and Dec={}</p>".format(tablename, rafield, decfield)
+                result += '<p>FITS file download: <a href="{0}/fits/{1}/{2}">{0}/fits/{1}/{2}</a></p>'.format(siteroot,re.split("_",userFolder)[1],servname)
+                result += '<p>Conesearch link: {0}/conesearch/{1}/{2}</p>'.format(siteroot,re.split("_",userFolder)[1],servname)
+                self.write_message(result)
 
         if message[0] == "E":
             editor = "<p><a href=\"javascript:getPath('{}')\">Reset</a><br />".format(message)

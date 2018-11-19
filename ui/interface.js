@@ -39,6 +39,16 @@ function toggleOptionArea() {
   }
 }
 
+function editInput(row, col) {
+  cell = document.getElementById("input_"+row+"_"+col)
+  cell.innerHTML = '<input id="edit_'+row+'_'+col+'" type="text" value="'+cell.getElementsByTagName('a')[0].innerHTML+'" onkeypress="return writeValue('+row+','+col+')"/>'
+}
+
+function writeValue(row, col) {
+  cellvalue = document.getElementById("edit_"+row+"_"+col).value
+  ws.send("W"+row+":"+col+":"+cellvalue)
+}
+
 function getFieldList() {
   ws.send("F"+document.getElementById("wtxfile").value)  
 }

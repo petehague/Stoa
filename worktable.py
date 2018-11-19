@@ -249,6 +249,12 @@ class Worktable():
                 #if header==2:
                 #    self.fielducd = re.split(' ', line)
                 header += 1
+            if "tracking.txt" in wtab.namelist():
+                with wtab.open("tracking.txt", "r") as tracking:
+                    for l,line in enumerate(tracking):
+                        tokens = re.split(" ",line.decode("ascii"))
+                        if "PENDING" in tokens[0]:
+                            self.track[l] = TR_PENDING
         self.buildtrow()
         self.lastfilename = filename
         if len(self.fielducd)<len(self.fieldnames):
@@ -322,6 +328,13 @@ class Worktable():
             for row in self.tabdata:
                 tabfile.write(' '.join(row)+"\n")
             tabfile.close()
+            trackfile = open(tempdir+"/tracking.txt", "w")
+            for item in self.track:
+                if item==TR_COMPLETE:
+                    trackfile.write("COMPLETE\n")
+                else:
+                    trackfile.write("PENDING\n")
+            trackfile.close()
             links = open(tempdir+"/links.txt", "w")
             links.write(','.join(self.parenttables)+"\n")
             links.write(','.join(self.childtables)+"\n")
@@ -495,6 +508,8 @@ class Worktable():
             if 'O_' in self.fieldtypes[i]:
                 for row in self.tabdata:
                     row[i] = "-"
+        for item in self.track:
+            item = TR_PENDING
         b = 0
         while b<len(self.tabdata):
             start = b

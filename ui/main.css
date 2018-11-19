@@ -305,6 +305,14 @@ td.linecell {
   padding: 0px;
 }
 
+th.track0 {
+  background-color: red;
+}
+
+th.track1 {
+  background-color: white;
+}
+
 img.lineel {
   border: 0px;
   margin: 0px;
