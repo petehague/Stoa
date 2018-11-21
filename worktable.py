@@ -164,6 +164,10 @@ class Worktable():
             self.tabdata[key] = stdata.copy()   
             self.track[key] = TR_COMPLETE    
 
+    def insert_byrow(self, row, col, newval):
+        self.tabdata[row][col] = newval
+        self.track[row] = TR_PENDING
+
     def byref(self, key):
         if key in self.keyref:
             return self.keyref[key]

@@ -41,12 +41,16 @@ function toggleOptionArea() {
 
 function editInput(row, col) {
   cell = document.getElementById("input_"+row+"_"+col)
-  cell.innerHTML = '<input id="edit_'+row+'_'+col+'" type="text" value="'+cell.getElementsByTagName('a')[0].innerHTML+'" onkeypress="return writeValue('+row+','+col+')"/>'
+  cell.innerHTML = '<input id="edit_'+row+'_'+col+'" type="text" value="'+cell.getElementsByTagName('a')[0].innerHTML+'" onkeypress="return writeValue(event,'+row+','+col+')"/>'
 }
 
-function writeValue(row, col) {
+function writeValue(e, row, col) {
+  if (e.keyCode!=13) { return true; }
   cellvalue = document.getElementById("edit_"+row+"_"+col).value
-  ws.send("W"+row+":"+col+":"+cellvalue)
+  tabname = document.getElementById("wtname").innerHTML 
+  ws.send("W"+tabname+":"+row+":"+col+":"+cellvalue)
+  cell = document.getElementById("input_"+row+"_"+col)
+  cell.innerHTML = '<a href="javascript:editInput('+row+','+col+')">'+cellvalue+'</a>'
 }
 
 function getFieldList() {

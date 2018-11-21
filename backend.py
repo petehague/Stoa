@@ -576,6 +576,16 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             filelist += '</form></div>'
             self.write_message(filelist)
         
+        if message[0] == 'W':
+            tokens = re.split(":", message[1:])
+            row = tokens[1]
+            col = tokens[2]
+            newval = tokens[3]
+            wtfile = os.path.join(targetFolder, userFolder, tokens[0])
+            wt = Worktable(wtfile)
+            wt.insert_byrow(int(row), int(col), newval)
+            wt.save(wtfile)
+            self.write_message('rt'+os.path.join(targetFolder, userFolder, tokens[0]))
 
         if message[0] == 'z':
             wt = Worktable(message[1:])
@@ -623,7 +633,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                         cwt.parenttables.remove(tokens[0])
                         cwt.parenttables.append(tokens[1])
                     cwt.save(os.path.join(targetFolder, userFolder, filename))
-                self.write_message('rt'+tokens[1])
+                self.write_message('rt'+os.path.join(targetFolder, userFolder, tokens[1]))
             else:
                 makescreen = '<h2>Rename {}</h2>'.format(message[1:])
                 makescreen += '<p><form class="mainform" action="javascript:rename(\'{}\')">'.format(message[1:])
@@ -647,7 +657,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             except: 
                 return
             monitor = "<div id='monitor' style='visibility: hidden'>"+wtname+"</div>"
-            tab = '<p><h2>Worktable: {0}</h2><ul class="topmenu"><li class="topitem"><a href="javascript:getPath(\'P{1}\')">Run Entire Table</a></li><li class="topitem"><a href="javascript:getPath(\'z{1}\')">Clear output</a></li><li class="topitem"><a href="javascript:getPath(\'k{1}\')">Delete Table</a></li><li class="topitem"><a href="javascript:getPath(\'N{0}\')">Rename Table</a></li><li><a href="javascript:getPath(\'E{0}\')">Edit Table</a></li></ul><p><table id = "Worktable"><tr><th></th>'.format(os.path.split(wtname)[1], wtname)
+            tab = '<p><h2>Worktable: <dev id="wtname">{0}</dev></h2><ul class="topmenu"><li class="topitem"><a href="javascript:getPath(\'P{1}\')">Run Entire Table</a></li><li class="topitem"><a href="javascript:getPath(\'z{1}\')">Clear output</a></li><li class="topitem"><a href="javascript:getPath(\'k{1}\')">Delete Table</a></li><li class="topitem"><a href="javascript:getPath(\'N{0}\')">Rename Table</a></li><li><a href="javascript:getPath(\'E{0}\')">Edit Table</a></li></ul><p><table id = "Worktable"><tr><th></th>'.format(os.path.split(wtname)[1], wtname)
             for fname in wt.fieldnames[1:]:
                 tab += "<th>{}</th>".format(fname)
             tab += "</tr><tr><th></th>"
@@ -708,7 +718,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             wt = Worktable(tokens[0])
             wt.addrow(tokens[1:])
             wt.save(tokens[0])
-            self.write_message('<script  type="text/javascript">getPath(\'t{}\')</script>'.format(tokens[0]))
+            self.write_message('rt'+os.path.join(targetFolder, userFolder, tokens[0]))
 
         #Display information for a service
         if message[0] == 's':
