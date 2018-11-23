@@ -475,6 +475,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                     rowfolder = row[1]
                     action.push(session[userip],wtfile,str(rowfolder),row[0])
                 lastbindex = row[0]
+            self.write_message('rt'+wtfile)
 
         if message[0] == 'p':
             content = message[1:].strip()
@@ -484,6 +485,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             bindex = tokens[2]
             print(command, path)
             action.push(session[userip],command,path,int(bindex))
+            self.write_message('rt'+command)
 
         #Terminate an action
         if message[0] == 'r':
@@ -675,9 +677,13 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                 bindex = row[0]
                 rowfolder = row[1]
                 if bindex==lastbindex:
-                    tab += '<tr class="row{}"><th>&nbsp;</th>'.format(alternator)
+                    runcol = "&nbsp;"
                 else:
-                    tab +='<tr class="row{}"><th class="track{}"><a href="javascript:getPath(\'p{}:{}:{}\')">run</a></th>'.format(alternator, wt.track[rindex], wtname, rowfolder, bindex)
+                    if action.isProc(session[userip], bindex):
+                        runcol = "Working..."
+                    else:
+                        runcol = '<a href="javascript:getPath(\'p{}:{}:{}\')">run</a>'.format(wtname, rowfolder, bindex)
+                tab += '<tr class="row{}"><th class="track{}">{}</th>'.format(alternator, wt.track[rindex], runcol)
                 alternator = 1-alternator
                 colid = 1
                 for cindex,col in enumerate(row[1:]):

@@ -12,6 +12,7 @@ package action_prot;
 service Action {
   rpc push(pushReq) returns (pushReply) {}
   rpc isFree(isFreeReq) returns (isFreeReply) {}
+  rpc isProc(isProcReq) returns (isFreeReply) {}
   rpc ExecCWL(ExecCWLReq) returns (ExecCWLReply) {}
   rpc makeyml(makeymlReq) returns (makeymlReply) {}
   rpc glob(globReq) returns (stream globReply) {}
@@ -52,6 +53,11 @@ message pushReq {
   string pathname = 2;
   string usertoken = 3;
   int32 bindex = 4;
+}
+
+message isProcReq {
+  string usertoken = 1;
+  int32 bindex = 2;
 }
 
 message pushReply {

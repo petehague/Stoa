@@ -23,6 +23,10 @@ def glob(pathname):
     return filelist
 
 
+def isProc(usertoken, bindex):
+    m = actions.isProc(action_pb2.isProcReq(usertoken=usertoken, bindex=bindex))
+    return m.result
+
 def isFree(usertoken):
     m = actions.isFree(action_pb2.isFreeReq(usertoken=usertoken))
     return m.result

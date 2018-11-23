@@ -507,6 +507,31 @@ class Worktable():
                    break
                orow = other2.tabdata[n][1:]
 
+    def clear(self,bindex):
+        for i in range(len(self.fieldtypes)):
+            if 'O_' in self.fieldtypes[i]:
+                for row in self.tabdata:
+                    if row[0]==bindex:
+                        row[i] = "-"
+        for i,item in enumerate(self.track):
+            if self.tabdata[i][0]==bindex:
+                item = TR_PENDING
+        b = 0
+        while b<len(self.tabdata):
+            start = b
+            key = self.tabdata[b][0]
+            for b in range(start, len(self.tabdata)):
+                if self.tabdata[b][0] != key:
+                    break
+            diff = b-(start+1)
+            if b>start+1:
+                self.tabdata = self.tabdata[:start+1] + self.tabdata[b:]
+                self.track = self.track[:start] + self.track[start:]
+            b-=diff
+        if len(self.tabdata)>1:
+            if self.tabdata[-1][0] == self.tabdata[-2][0]:
+                self.tabdata = self.tabdata[:-1]
+
     def clearall(self):
         for i in range(len(self.fieldtypes)):
             if 'O_' in self.fieldtypes[i]:

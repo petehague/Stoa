@@ -32,6 +32,7 @@ os.environ['PATH'] += ":"+scriptFolder
 lockQueue = 0 
 
 procQueue = {}
+procCheck = {}
 
 def ymlvars(ymlfile, output, pathname):
     f1 = open(ymlfile,"r")
@@ -48,7 +49,8 @@ def cwlinvoke(pathname, taskfile, params, userPath):
 
     taskfac = cwltool.factory.Factory()
     t = taskfac.make(pathname+os.sep+taskfile)
-    params["preserve-environment"]="PATH"
+    #params["preserve-environment"]="PATH"
+    params["preserve-entire-environment"]="0"
     result = t(**params)
 
     os.environ["PATH"] = oldpath
@@ -173,6 +175,7 @@ def clearQueue():
                userstate.append(usertoken, '{}  <span class="bold"><span class="red">FAILED</span></span>'.format(pathname))
             else:
                userstate.append(usertoken, '{}  <span class="bold"><span class="green">OK</span></span>'.format(pathname))
+            procCheck[usertoken].pop(0)
     lockQueue = 0
 
 def myGlob(pathname):
@@ -190,13 +193,22 @@ class actionServer(action_pb2_grpc.ActionServicer):
         print(request.cmdFile)
         return action_pb2.ExecCWLReply(result=ExecCWL(request.cmdFile, request.pathname))
 
+    def isProc(self, request, context):
+        if request.usertoken not in procCheck:
+            return action_pb2.isFreeReply(result=False)
+        if request.bindex in procCheck[request.usertoken]:
+            return action_pb2.isFreeReply(result=True)
+        return action_pb2.isFreeReply(result=False)
+
     def push(self, request, context):
         global lockQueue, procQueue
         while lockQueue>0:
           time.sleep(0.1)
         if request.usertoken not in procQueue:
             procQueue[request.usertoken] = []
+            procCheck[request.usertoken] = []
         procQueue[request.usertoken].append([request.cmdFile, request.pathname, request.bindex])
+        procCheck[request.usertoken].append(request.bindex)
         return action_pb2.pushReply(mess="OK")
 
     def isFree(self, request, context):
