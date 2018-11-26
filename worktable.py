@@ -91,6 +91,7 @@ class Worktable():
 
     def __next__(self):
         if self.tabptr == len(self.tabdata):
+            self.tabptr = 0
             raise StopIteration
         else:
             self.tabptr += 1
@@ -144,16 +145,18 @@ class Worktable():
                 if self.tabdata[b][0] != bindex:
                     break
             if b>key+1:
-                self.tabdata = self.tabdata[:key] + self.tabdata[b:]
-                self.track = self.track[:key] + self.track[key:]
+                self.tabdata = self.tabdata[:key+1] + self.tabdata[b:]
+                self.track = self.track[:key+1] + self.track[b:]
         for n in range(len(self.fieldtypes)):
             if 'O' in self.fieldtypes[n]:
                 break
         if type(data[0]) is list:
             tabinsert = [stdata[:n] + ['-']*(len(self.fieldtypes)-n)]
-            tabinsert *= len(data[0])
+            if len(data[0])>0:
+                tabinsert *= len(data[0])
             self.tabdata = self.tabdata[:key] + tabinsert + self.tabdata[key+1:]
-            self.track = self.track[:key] + [TR_PENDING]*len(tabinsert) + self.track[key+1:]
+            self.track = self.track[:key] + [TR_COMPLETE]*len(tabinsert) + self.track[key+1:]
+            print("Delete from {} to {} and insert {} rows".format(key, key+1, len(data[0])))
             for i in range(len(data[0])):
                 self.update(key+i, [x[i] for x in data], clear=False) 
         else:
@@ -177,11 +180,9 @@ class Worktable():
             return 0
 
     def bybindex(self, b):
-        n = 0
-        for row in self:
-            if row[0]==b:
+        for n in range(len(self)):
+            if self[n][0]==b:
                 break
-            n+=1
         return n
 
     def cat(self):
@@ -197,6 +198,12 @@ class Worktable():
             targetfile = wtab.open(filename, "r") 
             for line in targetfile:
                 print(line.decode('utf8')[:-1])
+
+    def filecontents(self, filename):
+        with ZipFile(self.lastfilename, "r") as wtab:
+            targetfile = wtab.open(filename, "r") 
+            for line in targetfile:
+                yield line.decode('utf8')[:-1]
 
     def buildtrow(self):
         self.trow = []
@@ -256,6 +263,8 @@ class Worktable():
             if "tracking.txt" in wtab.namelist():
                 with wtab.open("tracking.txt", "r") as tracking:
                     for l,line in enumerate(tracking):
+                        if l>=len(self.track):
+                            break
                         tokens = re.split(" ",line.decode("ascii"))
                         if "PENDING" in tokens[0]:
                             self.track[l] = TR_PENDING

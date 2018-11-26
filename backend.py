@@ -647,8 +647,17 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
             wt = Worktable(os.path.join(targetFolder, userFolder, message[1:]))
             result = '<h2>{}</h2><p>'.format(message[1:])
             for filename in wt.cat():
-                result += filename+"<br />"
+                result += '<a href="javaScript:getPath(\'e{0}:{1}\')">{1}</a><br />'.format(message[1:],filename)
             result += "</p>"
+            self.write_message(result)
+
+        if message[0] == 'e':
+            tokens = re.split(":",message[1:])
+            wt = Worktable(os.path.join(targetFolder, userFolder, tokens[0]))
+            result = '<h2>{} : {}</h2><p>'.format(tokens[0], tokens[1])
+            for line in wt.filecontents(tokens[1]):
+                result += line+"<br />"
+            result += '</p>'
             self.write_message(result)
 
         #Display a results table
@@ -752,16 +761,6 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                 result += '<p>FITS file download: <a href="{0}/fits/{1}/{2}">{0}/fits/{1}/{2}</a></p>'.format(siteroot,re.split("_",userFolder)[1],servname)
                 result += '<p>Conesearch link: {0}/conesearch/{1}/{2}</p>'.format(siteroot,re.split("_",userFolder)[1],servname)
                 self.write_message(result)
-
-        if message[0] == "E":
-            editor = "<p><a href=\"javascript:getPath('{}')\">Reset</a><br />".format(message)
-            editor += "<a href=\"javascript:commitFile('e{}')\">Commit</a><vr />".format(message[1:])
-            editor += '<textarea rows="10" columns="80" style="width: 600px; height: 1000px;">'
-            userfile = open(message[1:],"r")
-            for line in userfile:
-                editor += line
-            editor += '</textarea>'
-            self.write_message(editor)
 
         #Add a new user
         if message[0] == "N":

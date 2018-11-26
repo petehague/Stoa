@@ -49,8 +49,9 @@ def cwlinvoke(pathname, taskfile, params, userPath):
 
     taskfac = cwltool.factory.Factory()
     t = taskfac.make(pathname+os.sep+taskfile)
-    #params["preserve-environment"]="PATH"
-    params["preserve-entire-environment"]="0"
+    params["preserve-environment"]="PATH"
+    params["basedir"]=pathname
+    #params["preserve-entire-environment"]="0"
     result = t(**params)
 
     os.environ["PATH"] = oldpath
@@ -102,7 +103,7 @@ def ExecCWL(cmdFile, pathname, bindex):
     cmdDict = {}
     for i in range(len(wt.fieldnames)):
         if "I_" in wt.fieldtypes[i]:
-            contents = wt[bindex][i]
+            contents = wt[wt.bybindex(bindex)][i]
             if "file" in wt.fieldtypes[i]:
                 cmdDict[wt.fieldnames[i]] = {"class": "File", "location": "file://"+contents}
             else:
