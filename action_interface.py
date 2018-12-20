@@ -23,8 +23,8 @@ def glob(pathname):
     return filelist
 
 
-def isProc(usertoken, bindex):
-    m = actions.isProc(action_pb2.isProcReq(usertoken=usertoken, bindex=bindex))
+def isProc(usertoken, bindex, command):
+    m = actions.isProc(action_pb2.isProcReq(usertoken=usertoken, bindex=bindex, cmdFile=command))
     return m.result
 
 def isFree(usertoken):

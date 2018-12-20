@@ -14,6 +14,7 @@ from imp import load_source
 from fnmatch import fnmatch
 from astropy.table import Table
 import numpy as np
+import hashlib
 
 from worktable import Worktable, getnetwork, prune
 
@@ -100,7 +101,7 @@ def svgbar(filename, n, arrow=False):
     svg.close()
 
 def svgline(filename, n, lmap):
-    width,height = 75,120
+    width,height = 40,120
     lw = 6
     os.system("cp ui/header.svg "+filename)
 
@@ -176,7 +177,7 @@ def projectInfo(userFolder):
                     wtmap.append([])
                 wtmap[i+1].append(servfilename)
     fixwidth = len(wtmap)*130 + (len(wtmap)-1)*125
-    outstring += '<p><table class="wttab" width="{0}px"><tbody style="width: {0}px !important; display: table;">'.format(fixwidth)
+    outstring += '<p><table class="wttab"><tbody style="display: table;">'
 
     nrows = 0
     irn = np.random.randint(9999)
@@ -196,7 +197,7 @@ def projectInfo(userFolder):
                      svgbar(arrowfile, i, arrow=True)
                    else:
                      arrowfile = arrowfile_list[0]
-                   linkbar = '<img width="25" src="/file/{}" />'.format(arrowfile)
+                   linkbar = '<img class="linkbar" width="25" src="/file/{}" />'.format(arrowfile)
                    cells += '<td class="spacecell">{}</td>'.format(linkbar)
                 wtfile = wtmap[c][r]
                 wtpath = os.path.join(targetFolder, userFolder, wtfile)
@@ -245,7 +246,7 @@ def projectInfo(userFolder):
                   svgfilename = svgfilename_list[0]
                 linkline = '<img class="lineel" src="/file/{}" />'.format(svgfilename)
                 cells += '<td class="linecell">{}</td>'.format(linkline)
-        outstring += '<tr style="width: {}px !important;">'.format(fixwidth)+cells+'</tr>'
+        outstring += '<tr>'+cells+'</tr>' #outstring += '<tr style="width: {}px !important;">'.format(fixwidth)+cells+'</tr>'
         #print(cells+"\n\n")
     outstring += '</tbody></table></p>'
     return outstring
@@ -645,20 +646,35 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
 
         if message[0] == 'E':
             wt = Worktable(os.path.join(targetFolder, userFolder, message[1:]))
-            result = '<h2>{}</h2><p>'.format(message[1:])
-            for filename in wt.cat():
-                result += '<a href="javaScript:getPath(\'e{0}:{1}\')">{1}</a><br />'.format(message[1:],filename)
-            result += "</p>"
+            result = '<h2>{}</h2><p width="750px">'.format(message[1:])
+            filelist = sorted(list(wt.cat()))
+            for filename in filelist:
+                if filename not in ['links.txt', 'workflow.cwl', 'table.txt', 'template.yml', 'tracking.txt']:
+                    result += '<a href="javaScript:getPath(\'e{0}:{1}\')">{1}</a><span class="hash">[{2}]</span><br />'.format(message[1:],filename, wt.hash(filename))
+            result += '</p><div id="optionarea"><h2>User folder</h2><p>'
+            filelist = sorted(glob.glob(os.path.join(targetFolder, userFolder, "*.*")))
+            for filename in filelist:
+                m = hashlib.md5()
+                for line in open(filename, "rb"):
+                    m.update(line)
+                result += '<a href="javaScript:getPath(\'e{0}:{1}:add\')">{1}</a><span class="hash">[{2}]</span><br />'.format(message[1:], os.path.split(filename)[1], m.hexdigest())
+            result += '</p></div>'
             self.write_message(result)
 
         if message[0] == 'e':
             tokens = re.split(":",message[1:])
             wt = Worktable(os.path.join(targetFolder, userFolder, tokens[0]))
-            result = '<h2>{} : {}</h2><p>'.format(tokens[0], tokens[1])
-            for line in wt.filecontents(tokens[1]):
-                result += line+"<br />"
-            result += '</p>'
-            self.write_message(result)
+            if len(tokens)==3:
+                wt.addextra(os.path.join(targetFolder, userFolder, tokens[1]))
+                if ".cwl" in tokens[1]:
+                    wt.save(os.path.join(targetFolder, userFolder, tokens[0]))
+                self.write_message("rE"+tokens[0])
+            else:
+                result = '<h2 width="600px">{} : {}</h2><div id="conback"><p class="console">'.format(tokens[0], tokens[1])
+                for line in wt.filecontents(tokens[1]):
+                    result += line+"<br />"
+                result += '</p></div>'
+                self.write_message(result)
 
         #Display a results table
         if message[0] == 't':
@@ -688,7 +704,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                 if bindex==lastbindex:
                     runcol = "&nbsp;"
                 else:
-                    if action.isProc(session[userip], bindex):
+                    if action.isProc(session[userip], bindex, wtname):
                         runcol = "Working..."
                     else:
                         runcol = '<a href="javascript:getPath(\'p{}:{}:{}\')">run</a>'.format(wtname, rowfolder, bindex)
@@ -711,7 +727,7 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                         if not ishtml and len(coltext)>50:
                             coltext = coltext[0:13]+"...."+coltext[-33:]
                         if wt.fieldtypes[cindex+1][0]=='I':
-                          tab+='<td><dev id="input_{0}_{1}"><a href="javascript:editInput({0},{1})">{2}</a></dev></td>'.format(rindex,cindex+1,coltext)
+                          tab+='<td><span id="input_{0}_{1}"><span id="{3}"></span><a href="javascript:editInput({0},{1})">{2}</a></span></td>'.format(rindex,cindex+1,coltext,fulltext)
                         else:
                           tab+="<td>{}</td>".format(coltext)
                     colid += 1

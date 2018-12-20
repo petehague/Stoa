@@ -8,6 +8,7 @@ import tempfile
 import collections
 from astropy.table import Table
 import astropy.io.votable as votable
+import hashlib
 
 '''
   The worktable library
@@ -72,6 +73,7 @@ class Worktable():
         self.template = {}
         self.tasks = []
         self.otherfiles = []
+        self.filehash = {}
         self.fieldnames = ['__bindex__']
         self.fielducd = ['']
         self.fieldtypes = ['K_int']
@@ -144,6 +146,8 @@ class Worktable():
             for b in range(key, len(self.tabdata)):
                 if self.tabdata[b][0] != bindex:
                     break
+            if b==len(self.tabdata)-1 and self.tabdata[b][0]==bindex:
+                b += 1
             if b>key+1:
                 self.tabdata = self.tabdata[:key+1] + self.tabdata[b:]
                 self.track = self.track[:key+1] + self.track[b:]
@@ -230,10 +234,18 @@ class Worktable():
             self.template = yamler(io.TextIOWrapper(templateFile))
             for cwlfile in wtab.namelist():
                 if ".cwl" in cwlfile and cwlfile != "workflow.cwl":
+                    m = hashlib.md5()
+                    for line in  wtab.open(cwlfile, "r"):
+                        m.update(line)
+                    self.filehash[cwlfile] = m.hexdigest()
                     taskfile = wtab.open(cwlfile, "r")
                     self.tasks.append([cwlfile, yamler(io.TextIOWrapper(taskfile))])
                 else:
-                    if cwlfile not in ["workflow.cwl", "template.yml", "table.txt"]:
+                    if cwlfile not in ["links.txt", "workflow.cwl", "template.yml", "table.txt", "tracking.txt"]:
+                        m = hashlib.md5()
+                        for line in  wtab.open(cwlfile, "r"):
+                            m.update(line)
+                        self.filehash[cwlfile] = m.hexdigest()
                         self.otherfiles.append(cwlfile)
             header = 0
             links = wtab.open("links.txt", "r")
@@ -272,6 +284,9 @@ class Worktable():
         self.lastfilename = filename
         if len(self.fielducd)<len(self.fieldnames):
             self.fielducd = ['']*len(self.fieldnames)
+
+    def hash(self, key):
+        return self.filehash[key]
 
     def conesearch(self, rafield, decfield, ra, dec, sr, siteroot):
         tabletypes = []
@@ -369,11 +384,17 @@ class Worktable():
         del selfs.task[filename]
 
     def addextra(self, filename):
+        if ".cwl" in filename:
+            self.addtask(filename)
+            return
         self.otherfiles.append(filename)
         with ZipFile(self.lastfilename, "a") as wtab:
             wtab.write(filename, os.path.split(filename)[1])
 
     def removeextra(self, filename):
+        if ".cwl" in filename:
+            self.removetask(filename)
+            return
         del self.otherfiles[filename]
         pathname = os.path.split(self.unpack(),0)
         os.remove(os.path.join(pathname, filename))

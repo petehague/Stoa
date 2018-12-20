@@ -25,7 +25,7 @@ targetFolder = sys.argv[1]
 
 scriptPath = os.path.realpath(__file__)
 coreFolder = os.path.split(scriptPath)[0]
-scriptFolder = coreFolder+os.sep+"actions"
+scriptFolder = os.path.join(coreFolder,"actions")
 
 os.environ['PATH'] += ":"+scriptFolder
 
@@ -48,7 +48,7 @@ def cwlinvoke(pathname, taskfile, params, userPath):
     os.environ["PATH"] += ":" + userPath
 
     taskfac = cwltool.factory.Factory()
-    t = taskfac.make(pathname+os.sep+taskfile)
+    t = taskfac.make(os.path.join(pathname,taskfile))
     params["preserve-environment"]="PATH"
     params["basedir"]=pathname
     #params["preserve-entire-environment"]="0"
@@ -166,7 +166,7 @@ def clearQueue():
             pathname = pathname[1:]
             wtname = re.split(".wtx", os.path.split(command)[1])[0]
             tstamp = time.strftime("%Y%m%d-%H%M", time.gmtime())
-            pathname = os.path.join(targetFolder, "./log/", wtname+"_"+tstamp+"-"+str(bindex))
+            pathname = os.path.join(targetFolder, "log", wtname+"_"+tstamp+"-"+str(bindex))
             if not os.path.exists(pathname):
                 os.mkdir(pathname)
 
@@ -197,7 +197,7 @@ class actionServer(action_pb2_grpc.ActionServicer):
     def isProc(self, request, context):
         if request.usertoken not in procCheck:
             return action_pb2.isFreeReply(result=False)
-        if request.bindex in procCheck[request.usertoken]:
+        if str(request.cmdFile)+str(request.bindex) in procCheck[request.usertoken]:
             return action_pb2.isFreeReply(result=True)
         return action_pb2.isFreeReply(result=False)
 
@@ -209,7 +209,7 @@ class actionServer(action_pb2_grpc.ActionServicer):
             procQueue[request.usertoken] = []
             procCheck[request.usertoken] = []
         procQueue[request.usertoken].append([request.cmdFile, request.pathname, request.bindex])
-        procCheck[request.usertoken].append(request.bindex)
+        procCheck[request.usertoken].append(str(request.cmdFile)+str(request.bindex))
         return action_pb2.pushReply(mess="OK")
 
     def isFree(self, request, context):

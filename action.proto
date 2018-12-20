@@ -58,6 +58,7 @@ message pushReq {
 message isProcReq {
   string usertoken = 1;
   int32 bindex = 2;
+  string cmdFile = 3;
 }
 
 message pushReply {

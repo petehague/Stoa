@@ -41,7 +41,7 @@ function toggleOptionArea() {
 
 function editInput(row, col) {
   cell = document.getElementById("input_"+row+"_"+col)
-  cell.innerHTML = '<input id="edit_'+row+'_'+col+'" type="text" value="'+cell.getElementsByTagName('a')[0].innerHTML+'" onkeypress="return writeValue(event,'+row+','+col+')"/>'
+  cell.innerHTML = '<input id="edit_'+row+'_'+col+'" type="text" value="'+cell.getElementsByTagName('span')[0].id+'" onkeypress="return writeValue(event,'+row+','+col+')"/>'
 }
 
 function writeValue(e, row, col) {
@@ -50,7 +50,12 @@ function writeValue(e, row, col) {
   tabname = document.getElementById("wtname").innerHTML 
   ws.send("W"+tabname+":"+row+":"+col+":"+cellvalue)
   cell = document.getElementById("input_"+row+"_"+col)
-  cell.innerHTML = '<a href="javascript:editInput('+row+','+col+')">'+cellvalue+'</a>'
+  if (cellvalue.length>50) {
+    displayvalue = cellvalue.substring(0,13)+"...."+cellvalue.substring(33)
+  } else {
+    displayvalue = cellvalue
+  }
+  cell.innerHTML = '<span id="'+cellvalue+'"></span><a href="javascript:editInput('+row+','+col+')">'+displayvalue+'</a>'
 }
 
 function getFieldList() {

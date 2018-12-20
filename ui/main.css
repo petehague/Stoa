@@ -281,7 +281,7 @@ table.wttab {
 }
 
 td.wtcell {
-  width: 130px !important;
+  width: auto;
   height: 120px;
   border-style: none;
   margin: 0px;
@@ -292,14 +292,16 @@ td.wtcell {
 td.spacecell {
   width: 25px !important;
   height: 120px;
+  border: 0px;
   border-style: none;
   margin: 0px;
   padding: 0px;
 }
 
 td.linecell { 
-  width: 75px !important;
+  width: 40px !important;
   height: 120px;
+  border: 0px;
   border-style: none;
   margin: 0px;
   padding: 0px;
@@ -314,8 +316,9 @@ th.track1 {
 }
 
 img.lineel {
+  display: table-cell;
   border: 0px;
-  margin: 0px;
+  margin: 0px !important;
   padding: 0px;  
 }
 
@@ -335,6 +338,8 @@ img.wtimage {
   display: block;
   margin-left: auto;
   margin-right: auto;
+  border: 0px;
+  padding: 0px;
 }
 
 form.mainform {
@@ -359,4 +364,9 @@ li.topitem {
   padding-right: 40px;
   padding-left: 0px;
   margin: 0px;
+}
+
+span.hash {
+  font-size: 8px;
+  font-variant: small-caps;
 }
