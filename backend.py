@@ -161,8 +161,8 @@ def projectInfo(userFolder):
 
     outstring += '<ul class="topmenu"><li class="topitem"><a href="javascript:getPath(\'C\')">Create new worktable</a></li>'
     outstring += '<li class="topitem"><a href="javascript:getPath(\'S\')">Create new service</a></li>'
-    outstring += '<li class="topitem"><a href="javascript:getPath(\'U\')">Browse user files</a></li></ul>'
-
+    outstring += '<li class="topitem"><a href="javascript:getPath(\'U\')">Browse user files</a></li>'
+    outstring += '<li class="topitem"><a href="javascript:getPath(\'m\')">Merge tables</a></li></ul>'
     wtmap, parents, children = getnetwork(glob.glob(os.path.join(targetFolder, userFolder, "*.wtx")))
     for servfile in glob.glob(os.path.join(targetFolder, userFolder, "*.service")):
         servfilename = os.path.split(servfile)[1]
@@ -777,6 +777,32 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                 result += '<p>FITS file download: <a href="{0}/fits/{1}/{2}">{0}/fits/{1}/{2}</a></p>'.format(siteroot,re.split("_",userFolder)[1],servname)
                 result += '<p>Conesearch link: {0}/conesearch/{1}/{2}</p>'.format(siteroot,re.split("_",userFolder)[1],servname)
                 self.write_message(result)
+
+        if message[0] == "m":
+            if len(message)>1:
+                tokens = re.split(":", message[1:])
+                newwt = Worktable()
+                newname = os.path.split(tokens[0])[1]+"-"+os.path.split(tokens[1])[1]
+                nametoks = re.split(".wtx", newname)
+                newname = "".join(nametoks) + ".wtx"
+                newwt.lastfilename = newname
+                newwt.merge(Worktable(tokens[0]), Worktable(tokens[1]),":".join(tokens[2:]))
+                for field in newwt.fieldnames:
+                    newwt.template[field]='-'
+                newwt.save(os.path.join(targetFolder, userFolder, newname))
+                self.write_message("rt"+os.path.join(targetFolder, userFolder, newname))
+            else:
+                userform = '<h2 style="width: 500px;">Merge tables</h2><div width="1000px">&nbsp;</div><form class="mainform" action="javascript:mergeTables()"><p>'
+                userform += 'Worktable 1<input class="absinp" list="wtxglob" id="wtxfile" onchange="getFieldList()"/><br /><br />'
+                userform += '<datalist id="wtxglob">'
+                for filename in glob.glob(os.path.join(targetFolder,userFolder,"*.wtx")):
+                    userform += '<option value="{}" />'.format(filename)
+                userform += '</datalist>'
+                userform += 'Worktable 2<input class="absinp" list="wtxglob" id="wtxfile2" onchange="getFieldList()"/><br /><br />'
+                userform += '<input type="submit" value="Merge" />'
+                userform += '<div id="optionarea">Field names: <div id="fieldfield"></div><br />'
+                userform += 'Key fields <input class="absinp" type="text" id="keyfields" /><br /><br />(seperate with :)</p></div></form>'
+                self.write_message(userform)
 
         #Add a new user
         if message[0] == "N":

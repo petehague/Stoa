@@ -23,6 +23,13 @@ function newWorktable(filename) {
   }
 }
 
+function mergeTables() {
+  wtxname1 = document.getElementById("wtxfile").value
+  wtxname2 = document.getElementById("wtxfile2").value
+  fieldnames = document.getElementById("keyfields").value
+  ws.send("m"+wtxname1+":"+wtxname2+":"+fieldnames)
+}
+
 function newService(filename) {
   servicename = document.getElementById("servicename").value
   wtxname = document.getElementById("wtxfile").value
