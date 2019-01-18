@@ -643,7 +643,7 @@ def getnetwork(pathlist):
     parents = dict.fromkeys(filelist, 0)
     children = dict.fromkeys(filelist, 0)
     for filename in filelist:
-        prune(os.path.join(targetfolder, filename), targetfolder)
+        #prune(os.path.join(targetfolder, filename), targetfolder)
         wt = Worktable(os.path.join(targetfolder, filename))
         parents[filename] = wt.parenttables
         children[filename] = wt.childtables
@@ -733,6 +733,15 @@ if __name__=="__main__":
         print("Children: "+", ".join(wt.childtables))
         print("\n")
         wt.show()
+
+    if cmd=="showq":
+        wt = Worktable(sys.argv[2])
+        print("Contents:")
+        for filename in wt.cat():
+          print("  "+filename)
+        print("\nParents: "+", ".join(wt.parenttables))
+        print("Children: "+", ".join(wt.childtables))
+        print("\n")
 
     if cmd=="clear":
         wt = Worktable(sys.argv[2])

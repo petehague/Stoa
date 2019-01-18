@@ -17,7 +17,7 @@ def services(url):
 
       Returns a list of STOA services available at <url>
     '''
-    result = urllib.request.urlopen(url).data
+    result = urllib.request.urlopen(url+"/ls").data
     if result[0:1]=='LS':
         services = re.split("\n", result[3:])
         return services

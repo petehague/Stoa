@@ -9,6 +9,7 @@ import socket
 import backend
 import re
 from yml import yamler
+import glob
 
 if len(sys.argv) > 2:
     portnum = int(sys.argv[2])
@@ -64,6 +65,17 @@ class MainHandler(secureHandler):
                     textContent=backend.projectInfo("user_"+user.decode()),
                     hostname=thishost,
                     action=actionhtml)
+
+class serviceList(tornado.web.RequestHandler):
+  def get(self):
+    services = []
+    userfolders = glob.glob(os.path.join(backend.targetFolder,"user_*"))
+    for uf in userfolders:
+        newservices = glob.glob(os.path.join(backend.targetFolder, uf, "*.service"))
+        for ns in newservices:
+            if ".action" not in ns:
+                services.append(ns)
+    self.finish("LS"+"\n".join(services))
 
 class securedStatic(tornado.web.StaticFileHandler):
     @tornado.web.authenticated
@@ -129,6 +141,7 @@ app = tornado.web.Application([
     (r"/conesearch/(.*)", backend.ConeSearchHandler),
     (r"/fits/(.*)", backend.FitsHandler),
     (r"/fup", fileUpload),
+    (r"/ls", serviceList),
     ], **settings)
 
 print("Starting backend at {}".format(backend.targetFolder))

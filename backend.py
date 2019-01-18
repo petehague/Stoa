@@ -165,17 +165,34 @@ def projectInfo(userFolder):
     outstring += '<li class="topitem"><a href="javascript:getPath(\'m\')">Merge tables</a></li></ul>'
     wtmap, parents, children = getnetwork(glob.glob(os.path.join(targetFolder, userFolder, "*.wtx")))
     for servfile in glob.glob(os.path.join(targetFolder, userFolder, "*.service")):
-        servfilename = os.path.split(servfile)[1]
+      servfilename = os.path.split(servfile)[1]
+      if ".action" in servfilename:
+        parents[servfilename] = []
+        with open(servfile, "r") as s:
+            stype = s.readline().strip()
+            starget = s.readline().strip()
+        children[servfilename] = starget
+        for i, column in enumerate(wtmap):
+          if starget in column:
+              coln = i
+        if coln==0:
+            wtmap = [[servfilename]] + wtmap
+        else:
+            wtmap[coln-1].append(servfilename)
+
+      else:
         children[servfilename] = []
         with open(servfile, "r") as s:
             ssource = s.readline().strip()
-        parents[servfilename] = [ssource]
-        children[ssource].append(servfilename)
-        for i,column in enumerate(wtmap):
-            if ssource in column:
-                if i==len(wtmap)-1:
-                    wtmap.append([])
-                wtmap[i+1].append(servfilename)
+        if ssource in children:
+          parents[servfilename] = [ssource]
+          children[ssource].append(servfilename)
+          for i,column in enumerate(wtmap):
+              if ssource in column:
+                  if i==len(wtmap)-1:
+                      wtmap.append([])
+                  wtmap[i+1].append(servfilename)
+
     fixwidth = len(wtmap)*130 + (len(wtmap)-1)*125
     outstring += '<p><table class="wttab"><tbody style="display: table;">'
 
@@ -207,8 +224,11 @@ def projectInfo(userFolder):
                 if ".service" in wtfile:
                     icon = "service"
                     wtfile = wtfile[:-8]
+                    if ".action" in wtfile:
+                        wtfile = wtfile[:-7]
+                        icon = "clock"
                 else:
-                    icon = "page"
+                    icon = "worktable"
                     wtfile = wtfile[:-4]
                 cells += '<img class="wtimage" width="50px" height="50px" src="static/{}.svg" />'.format(icon)
                 cells += '<p class="wttext">{}</p>'.format(wtfile)
@@ -762,9 +782,10 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                 actname = re.split("\.",os.path.split(servpath)[1])[0]
                 result = "<h2>{}: {}</h2>".format(atype, actname)
                 result += '<a href="javascript:getPath(\'k{}\')">Delete Service</a><br />'.format(servpath)
-                result += "<p>Uses worktable {}</p>".format(tablename)
+                result += "<p>Uses worktable {}</p>".format(tabptr)
                 if atype=="prompt":
                     result += "<p>Time to run table: {}</p>".format(param)
+                self.write_message(result)
             else:
                 with open(servpath, "r") as sfile:
                     tablename = sfile.readline()
