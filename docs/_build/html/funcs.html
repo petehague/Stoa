@@ -1,223 +1,322 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
-<html xmlns="http://www.w3.org/1999/xhtml">
-  <head>
-    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Functions &#8212; STOA 0.1.0 documentation</title>
-    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-    <script type="text/javascript" src="_static/jquery.js"></script>
-    <script type="text/javascript" src="_static/underscore.js"></script>
-    <script type="text/javascript" src="_static/doctools.js"></script>
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Functions &mdash; STOA 0.8.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="prev" title="Design" href="design.html" />
+    <link rel="prev" title="Design" href="design.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
    
-  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
-  
-  
-  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+  <div class="wy-grid-for-nav">
 
-  </head><body>
-  
-
-    <div class="document">
-      <div class="documentwrapper">
-        <div class="bodywrapper">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
           
 
-          <div class="body" role="main">
+          
+            <a href="index.html" class="icon icon-home"> STOA
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.8.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="starting.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="process.html">How worktables are processed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="design.html">Design</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Functions</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#module-worktable">Worktable module</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#module-backend">Web Backend</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#user-state">User State</a></li>
+</ul>
+</li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">STOA</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Functions</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/funcs.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
             
   <div class="section" id="functions">
 <h1>Functions<a class="headerlink" href="#functions" title="Permalink to this headline">¶</a></h1>
 <p>These functions are documented for completeness, most are not intended
 for the end user to call directly</p>
-<div class="section" id="module-pipe">
-<span id="pipe-module"></span><h2>Pipe module<a class="headerlink" href="#module-pipe" title="Permalink to this headline">¶</a></h2>
-<p>The Pipe module can be run as a standalone command line interface, but is
-mainly designed to be used as the back end of the web interface</p>
-<dl class="function">
-<dt id="pipe.commandgen">
-<code class="descclassname">pipe.</code><code class="descname">commandgen</code><span class="sig-paren">(</span><em>command</em>, <em>pathname</em>, <em>noproc=False</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pipe.html#commandgen"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pipe.commandgen" title="Permalink to this definition">¶</a></dt>
-<dd><p>Main command processing function. Parses file system to find targets
-and then invokes the specific action script. Runs as a generator.</p>
+<div class="section" id="module-worktable">
+<span id="worktable-module"></span><h2>Worktable module<a class="headerlink" href="#module-worktable" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-backend">
+<span id="web-backend"></span><h2>Web Backend<a class="headerlink" href="#module-backend" title="Permalink to this headline">¶</a></h2>
+<dl class="class">
+<dt id="backend.ConeSearchHandler">
+<em class="property">class </em><code class="descclassname">backend.</code><code class="descname">ConeSearchHandler</code><span class="sig-paren">(</span><em>application</em>, <em>request</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/backend.html#ConeSearchHandler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#backend.ConeSearchHandler" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="backend.FitsHandler">
+<em class="property">class </em><code class="descclassname">backend.</code><code class="descname">FitsHandler</code><span class="sig-paren">(</span><em>application</em>, <em>request</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/backend.html#FitsHandler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#backend.FitsHandler" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="class">
+<dt id="backend.SocketHandler">
+<em class="property">class </em><code class="descclassname">backend.</code><code class="descname">SocketHandler</code><span class="sig-paren">(</span><em>application</em>, <em>request</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/backend.html#SocketHandler"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#backend.SocketHandler" title="Permalink to this definition">¶</a></dt>
+<dd><p>Handler for WebSocket connections</p>
+<dl class="method">
+<dt id="backend.SocketHandler.check_origin">
+<code class="descname">check_origin</code><span class="sig-paren">(</span><em>origin</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/backend.html#SocketHandler.check_origin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#backend.SocketHandler.check_origin" title="Permalink to this definition">¶</a></dt>
+<dd><p>To be implemented for security checks</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>command</strong> – The action script or command to be executed</li>
-<li><strong>pathname</strong> – The root path to start the search from</li>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>origin</strong> – Page originating WS request</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">Always “True” at the moment</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="backend.SocketHandler.on_close">
+<code class="descname">on_close</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/backend.html#SocketHandler.on_close"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#backend.SocketHandler.on_close" title="Permalink to this definition">¶</a></dt>
+<dd><p>Closes WebSocket</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">None</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="backend.SocketHandler.on_message">
+<code class="descname">on_message</code><span class="sig-paren">(</span><em>message</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/backend.html#SocketHandler.on_message"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#backend.SocketHandler.on_message" title="Permalink to this definition">¶</a></dt>
+<dd><p>Responds to WS messages. Action is determined by first character
+of message</p>
+<ul class="simple">
+<li>H: Home</li>
+<li>F: Flag target</li>
+<li>U: Unflag target</li>
+<li>A/a: Get action list</li>
+<li>P: Run a worktable</li>
+<li>p: Run one row of a worktable</li>
+<li>R/f: Run the specified action</li>
+<li>r: Terminate an action</li>
+<li>D: Display a file</li>
+<li>C: Create new worktable</li>
+<li>z: Clear contents of a worktable</li>
+<li>k: Delete a worktable</li>
+<li>t: Display a worktable</li>
+<li>&amp;: Append to a worktable</li>
+<li>s: Display a service</li>
+<li>X: Logout</li>
 </ul>
-</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">Yields text reports of success/failure</p>
-</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
-<dt id="pipe.doActlist">
-<code class="descclassname">pipe.</code><code class="descname">doActlist</code><span class="sig-paren">(</span><em>command</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pipe.html#doActlist"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pipe.doActlist" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns a list of all the action scripts available</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>command</strong> – Not used</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>message</strong> – WS message string</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">List of scripts</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">None</td>
 </tr>
 </tbody>
 </table>
 </dd></dl>
 
-<dl class="function">
-<dt id="pipe.doDefault">
-<code class="descclassname">pipe.</code><code class="descname">doDefault</code><span class="sig-paren">(</span><em>command</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pipe.html#doDefault"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pipe.doDefault" title="Permalink to this definition">¶</a></dt>
-<dd><p>The default prefix; Returns a list of paths containing the target</p>
+<dl class="method">
+<dt id="backend.SocketHandler.open">
+<code class="descname">open</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/backend.html#SocketHandler.open"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#backend.SocketHandler.open" title="Permalink to this definition">¶</a></dt>
+<dd><p>Opens WebSocket</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>command</strong> – Name of command script</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A list of paths</td>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">None</td>
 </tr>
 </tbody>
 </table>
 </dd></dl>
 
+</dd></dl>
+
 <dl class="function">
-<dt id="pipe.doList">
-<code class="descclassname">pipe.</code><code class="descname">doList</code><span class="sig-paren">(</span><em>command</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pipe.html#doList"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pipe.doList" title="Permalink to this definition">¶</a></dt>
-<dd><p>Combines the results of doRun and doRetry into a single list</p>
+<dt id="backend.current">
+<code class="descclassname">backend.</code><code class="descname">current</code><span class="sig-paren">(</span><em>userip</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/backend.html#current"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#backend.current" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the current folder being viewed by a user</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>command</strong> – Name of command script; not used here</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>userip</strong> – The IP address of the user (currently used as ID)</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A list of paths</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">The name of the folder</td>
 </tr>
 </tbody>
 </table>
 </dd></dl>
 
 <dl class="function">
-<dt id="pipe.doOptlist">
-<code class="descclassname">pipe.</code><code class="descname">doOptlist</code><span class="sig-paren">(</span><em>command</em>, <em>list={}</em>, <em>indent=''</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pipe.html#doOptlist"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pipe.doOptlist" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns all the program options</p>
+<dt id="backend.getwsroot">
+<code class="descclassname">backend.</code><code class="descname">getwsroot</code><span class="sig-paren">(</span><em>userip</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/backend.html#getwsroot"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#backend.getwsroot" title="Permalink to this definition">¶</a></dt>
+<dd><p>Get the address this user has to send ws connections to</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>command</strong> – Not used</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>userip</strong> – The IP address of the user (currently used as ID)</td>
 </tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">List of options</td>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A URL</td>
 </tr>
 </tbody>
 </table>
 </dd></dl>
 
 <dl class="function">
-<dt id="pipe.doOptset">
-<code class="descclassname">pipe.</code><code class="descname">doOptset</code><span class="sig-paren">(</span><em>command</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pipe.html#doOptset"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pipe.doOptset" title="Permalink to this definition">¶</a></dt>
-<dd><p>Sets the value of a option</p>
+<dt id="backend.projectInfo">
+<code class="descclassname">backend.</code><code class="descname">projectInfo</code><span class="sig-paren">(</span><em>userFolder</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/backend.html#projectInfo"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#backend.projectInfo" title="Permalink to this definition">¶</a></dt>
+<dd><p>Produces the main page containing information about the current project</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>command</strong> – string formatted as “&lt;option&gt; &lt;new value&gt;”</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">string representation of the new option</td>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">HTML output</td>
 </tr>
 </tbody>
 </table>
 </dd></dl>
 
 <dl class="function">
-<dt id="pipe.doQuery">
-<code class="descclassname">pipe.</code><code class="descname">doQuery</code><span class="sig-paren">(</span><em>command</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pipe.html#doQuery"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pipe.doQuery" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns a list of paths derived from an SQL query</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>command</strong> – What is put after “WHERE” in the query</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A list of paths</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
-<dt id="pipe.doRetry">
-<code class="descclassname">pipe.</code><code class="descname">doRetry</code><span class="sig-paren">(</span><em>command</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pipe.html#doRetry"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pipe.doRetry" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the paths that resulted in failure in the most
-recent run</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>command</strong> – Name of command script; not used here</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A list of paths</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
-<dt id="pipe.doRun">
-<code class="descclassname">pipe.</code><code class="descname">doRun</code><span class="sig-paren">(</span><em>command</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pipe.html#doRun"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pipe.doRun" title="Permalink to this definition">¶</a></dt>
-<dd><p>Returns the paths that have been flagged by the user</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>command</strong> – Name of command script; not used here</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A list of paths</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
-<dt id="pipe.parseAction">
-<code class="descclassname">pipe.</code><code class="descname">parseAction</code><span class="sig-paren">(</span><em>filename</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pipe.html#parseAction"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pipe.parseAction" title="Permalink to this definition">¶</a></dt>
-<dd><p>Parses a script file to extract directives</p>
-<table class="docutils field-list" frame="void" rules="none">
-<col class="field-name" />
-<col class="field-body" />
-<tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>filename</strong> – The name of the script file</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A list of directives</td>
-</tr>
-</tbody>
-</table>
-</dd></dl>
-
-<dl class="function">
-<dt id="pipe.procCommand">
-<code class="descclassname">pipe.</code><code class="descname">procCommand</code><span class="sig-paren">(</span><em>command</em>, <em>pathname</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pipe.html#procCommand"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pipe.procCommand" title="Permalink to this definition">¶</a></dt>
-<dd><p>Initialises the database and then invokes commandgen()</p>
+<dt id="backend.setCurrent">
+<code class="descclassname">backend.</code><code class="descname">setCurrent</code><span class="sig-paren">(</span><em>userip</em>, <em>foldername</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/backend.html#setCurrent"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#backend.setCurrent" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the current folder being viewed by a user</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
 <tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
-<li><strong>command</strong> – Passed to commandgen()</li>
-<li><strong>pathname</strong> – Passed to commandgen()</li>
+<li><strong>userip</strong> – The IP address of the user (currently used as ID)</li>
+<li><strong>foldername</strong> – The name of the folder</li>
 </ul>
 </td>
 </tr>
@@ -229,15 +328,14 @@ recent run</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pipe.runDisplay">
-<code class="descclassname">pipe.</code><code class="descname">runDisplay</code><span class="sig-paren">(</span><em>path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pipe.html#runDisplay"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pipe.runDisplay" title="Permalink to this definition">¶</a></dt>
-<dd><p>Dumps contents to console. Needed as a placeholder function for commands
-that execute wholly in their prefix stage</p>
+<dt id="backend.setTarget">
+<code class="descclassname">backend.</code><code class="descname">setTarget</code><span class="sig-paren">(</span><em>t</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/backend.html#setTarget"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#backend.setTarget" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sets the target folder</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>path</strong> – Prints this to the console</td>
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>t</strong> – The name of the new target folder</td>
 </tr>
 <tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">None</td>
 </tr>
@@ -246,24 +344,52 @@ that execute wholly in their prefix stage</p>
 </dd></dl>
 
 <dl class="function">
-<dt id="pipe.setProctabPath">
-<code class="descclassname">pipe.</code><code class="descname">setProctabPath</code><span class="sig-paren">(</span><em>pathname</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/pipe.html#setProctabPath"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#pipe.setProctabPath" title="Permalink to this definition">¶</a></dt>
-<dd><p>Sets the database path</p>
+<dt id="backend.startBackend">
+<code class="descclassname">backend.</code><code class="descname">startBackend</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/backend.html#startBackend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#backend.startBackend" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialises the web database (distinct from the pipeline one) and
+loads in user table</p>
 <table class="docutils field-list" frame="void" rules="none">
 <col class="field-name" />
 <col class="field-body" />
 <tbody valign="top">
-<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>pathname</strong> – The path to an sqlite database file</td>
-</tr>
-<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">None</td>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">None</td>
 </tr>
 </tbody>
 </table>
 </dd></dl>
 
-</div>
-<div class="section" id="web-backend">
-<h2>Web Backend<a class="headerlink" href="#web-backend" title="Permalink to this headline">¶</a></h2>
+<dl class="function">
+<dt id="backend.usercheck">
+<code class="descclassname">backend.</code><code class="descname">usercheck</code><span class="sig-paren">(</span><em>userip</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/backend.html#usercheck"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#backend.usercheck" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if the user is valid</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>userip</strong> – The IP address of the user (currently used as ID)</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">A session ID, or “False” if there is no such user</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="backend.xmlListing">
+<code class="descclassname">backend.</code><code class="descname">xmlListing</code><span class="sig-paren">(</span><em>path</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/backend.html#xmlListing"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#backend.xmlListing" title="Permalink to this definition">¶</a></dt>
+<dd><p>Parses XML files stored in target folders</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>path</strong> – The path name of the folder containing the .xml file</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">List of subpaths (i.e. observations) defined in the file</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
 </div>
 <div class="section" id="user-state">
 <h2>User State<a class="headerlink" href="#user-state" title="Permalink to this headline">¶</a></h2>
@@ -304,72 +430,60 @@ that execute wholly in their prefix stage</p>
 </div>
 
 
+           </div>
+           
           </div>
-          
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+      
+        <a href="design.html" class="btn btn-neutral" title="Design" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017-2019, Peter Hague
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
         </div>
       </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper">
-<h1 class="logo"><a href="index.html">STOA</a></h1>
+
+    </section>
+
+  </div>
+  
 
 
-
-
-
-
-
-
-<h3>Navigation</h3>
-<p class="caption"><span class="caption-text">Contents:</span></p>
-<ul class="current">
-<li class="toctree-l1"><a class="reference internal" href="starting.html">Introduction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="design.html">Design</a></li>
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Functions</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#module-pipe">Pipe module</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#web-backend">Web Backend</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#user-state">User State</a></li>
-</ul>
-</li>
-</ul>
-
-<div class="relations">
-<h3>Related Topics</h3>
-<ul>
-  <li><a href="index.html">Documentation overview</a><ul>
-      <li>Previous: <a href="design.html" title="previous chapter">Design</a></li>
-  </ul></li>
-</ul>
-</div>
-<div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="search.html" method="get">
-      <input type="text" name="q" />
-      <input type="submit" value="Go" />
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
-    </form>
-    </div>
-</div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
-        </div>
-      </div>
-      <div class="clearer"></div>
-    </div>
-    <div class="footer">
-      &copy;2017, Peter Hague.
-      
-      |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.6</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
-      
-      |
-      <a href="_sources/funcs.rst.txt"
-          rel="nofollow">Page source</a>
-    </div>
+  
 
     
-
     
-  </body>
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
 </html>

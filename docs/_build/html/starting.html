@@ -1,57 +1,165 @@
 
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
-  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
 
-<html xmlns="http://www.w3.org/1999/xhtml">
-  <head>
-    <meta http-equiv="X-UA-Compatible" content="IE=Edge" />
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-    <title>Introduction &#8212; STOA 0.1.0 documentation</title>
-    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
-    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-    <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
-    <script type="text/javascript" src="_static/jquery.js"></script>
-    <script type="text/javascript" src="_static/underscore.js"></script>
-    <script type="text/javascript" src="_static/doctools.js"></script>
+<!DOCTYPE html>
+<!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
+<!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Introduction &mdash; STOA 0.8.0 documentation</title>
+  
+
+  
+  
+  
+  
+
+  
+
+  
+  
+    
+
+  
+
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Design" href="design.html" />
-    <link rel="prev" title="Welcome to STOA’s documentation!" href="index.html" />
+    <link rel="next" title="How worktables are processed" href="process.html" />
+    <link rel="prev" title="STOA Users Manual" href="index.html" /> 
+
+  
+  <script src="_static/js/modernizr.min.js"></script>
+
+</head>
+
+<body class="wy-body-for-nav">
+
    
-  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
-  
-  
-  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+  <div class="wy-grid-for-nav">
 
-  </head><body>
-  
-
-    <div class="document">
-      <div class="documentwrapper">
-        <div class="bodywrapper">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search">
           
 
-          <div class="body" role="main">
+          
+            <a href="index.html" class="icon icon-home"> STOA
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.8.0
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Introduction</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#getting-started">Getting Started</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#first-use">First Use</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#creating-worktables">Creating Worktables</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="process.html">How worktables are processed</a></li>
+<li class="toctree-l1"><a class="reference internal" href="design.html">Design</a></li>
+<li class="toctree-l1"><a class="reference internal" href="funcs.html">Functions</a></li>
+</ul>
+
+            
+          
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">STOA</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html">Docs</a> &raquo;</li>
+        
+      <li>Introduction</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/starting.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
             
   <div class="section" id="introduction">
 <h1>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h1>
-<p>Stoa is designed to operate complex processing pipelines across heterogenous
-data sets. It does this mainly through Worktables - objects combining a workflow
-object (written in CWL) with a data table. Any program can be inlcuded in a
-Worktable.</p>
-<div class="section" id="getting-started">
-<h2>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h2>
-<p>Download the code from <a class="reference external" href="https://github.com/petehague/stoa">https://github.com/petehague/stoa</a> and type:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">./</span><span class="n">demo</span><span class="o">.</span><span class="n">sh</span>
-</pre></div>
-</div>
-<p>in the installation directory. Then open a web browser at the address:</p>
-<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">http</span><span class="p">:</span><span class="o">//</span><span class="mf">127.0</span><span class="o">.</span><span class="mf">0.1</span><span class="p">:</span><span class="mi">9000</span>
-</pre></div>
-</div>
-</div>
-<div class="section" id="general-usage">
-<h2>General Usage<a class="headerlink" href="#general-usage" title="Permalink to this headline">¶</a></h2>
+<p>Stoa is a workflow management system that keeps your code and data on a server and allows you and your collaborators to control them remotely through a web interface. It organises your data into worktables, into which your code is embedded through CWL (Common Workflow Language). Worktables are linked together into a higher level execution graph. STOA is able to take the output of any worktable and present it online as a service to others. At present, the services supported are fits format download, and VO cone search.</p>
 <p>The central data structure in Stoa is the Worktable. Worktables encapsulate
 workflows, written in CWL (Common Workflow Language), which define the inputs and
 outputs of either a single command, or a workflow composed of multiple commands
@@ -67,76 +175,97 @@ to populate the rows of another. For a trivial example, a simple worktable can e
 command ‘find’ to locate all the folders in a large directory structure where a process
 should be run. The output of this, one pathname per row, could be used to populate the input
 columns of the Worktable encapsulating another process</p>
+<p>Stoa is designed to operate complex processing pipelines across heterogenous
+data sets. It does this mainly through Worktables - objects combining a workflow
+object (written in CWL) with a data table. Any program can be inlcuded in a
+Worktable.</p>
+<div class="section" id="getting-started">
+<h2>Getting Started<a class="headerlink" href="#getting-started" title="Permalink to this headline">¶</a></h2>
+<p>STOA requires Python 3 and some Python libraries, all available through <code class="docutils literal notranslate"><span class="pre">pip</span></code> - we recommend that you use a virtual environment when trying this out.
+When you have one set up, install <code class="docutils literal notranslate"><span class="pre">numpy</span></code>, <code class="docutils literal notranslate"><span class="pre">astropy</span></code>, <code class="docutils literal notranslate"><span class="pre">wltool</span></code>, <code class="docutils literal notranslate"><span class="pre">grpcio-tools</span></code> and <code class="docutils literal notranslate"><span class="pre">tornado</span></code> and you should be good to go</p>
+<p>In order to prepare STOA to run, type:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">./</span><span class="n">ready</span><span class="o">.</span><span class="n">sh</span>
+</pre></div>
+</div>
+<p>this only need be done once per STOA install. Then type:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>./start.sh $PWD/example 9000
+</pre></div>
+</div>
+<p>to run the demo. Go to your browser and visit “localhost:9000” to try it out</p>
+</div>
+<div class="section" id="first-use">
+<h2>First Use<a class="headerlink" href="#first-use" title="Permalink to this headline">¶</a></h2>
+<p>Login as admin (no password is required) and use <code class="docutils literal notranslate"><span class="pre">Create</span> <span class="pre">New</span> <span class="pre">User</span></code> to add yourself as a user. Logout with the X icon on the left and then log back in with your username. No passwords are required at present; the current version is not designed to be visible outside private networks.</p>
+<img alt="_images/newtable.png" src="_images/newtable.png" />
+<p>Now create a worktable to implement the <code class="docutils literal notranslate"><span class="pre">find</span></code> command. Click on the <code class="docutils literal notranslate"><span class="pre">Create</span> <span class="pre">New</span> <span class="pre">Worktable</span></code> link and choose the workflow and yml file (which stores default values) then click <code class="docutils literal notranslate"><span class="pre">Create</span></code>. The STOA install provides find.cwl and find.yml for testing purposes. Once the worktable is created, the screen should look like Figure 2. In order to run the worktable, it needs input for the workflow. Recall that each execution instance of a workflow is a row in the table, so in order to provide input for a workflow, we need to add a row. The dialogue box next to the ‘+’ sign can be used to type in a value for this workflow’s solitary input. Then click on + to add a row.</p>
+<p>Once this table is present, go into it and add a new row with <code class="docutils literal notranslate"><span class="pre">product</span></code> as its input, and then run that row.</p>
+<img alt="_images/worktableview.png" src="_images/worktableview.png" />
+<p>At this point, there will be two pathnames from the example folder. This information will be passed on to the next worktable</p>
+</div>
+<div class="section" id="creating-worktables">
+<h2>Creating Worktables<a class="headerlink" href="#creating-worktables" title="Permalink to this headline">¶</a></h2>
+<p>In order to create your own worktables in STOA, it is first necessary to create CWL wrappers for all the code you need. This is not typically difficult, and some wrappers for simple functions are included already for your convenience. There is a user guide for CWL at <a class="reference external" href="https://www.commonwl.org/user_guide/">https://www.commonwl.org/user_guide/</a> which will teach you the basics of the language and quickly get you writing wrappers for your own scripts. In brief, CWL describes the tools you use in terms of their inputs and outputs, and then lets you combine them into workflows with linked inputs and outputs.</p>
+<p>Any command line tool whose operation is driven by its command line parameters, and can be modified to store all its output in a file named <code class="docutils literal notranslate"><span class="pre">cwl.output.json</span></code>, will have a very simple wrapper. Future versions of STOA will include a way to automatically generate such wrappers.</p>
 </div>
 </div>
 
 
+           </div>
+           
           </div>
-          
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="process.html" class="btn btn-neutral float-right" title="How worktables are processed" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="index.html" class="btn btn-neutral" title="STOA Users Manual" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        &copy; Copyright 2017-2019, Peter Hague
+
+    </p>
+  </div>
+  Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
         </div>
       </div>
-      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
-        <div class="sphinxsidebarwrapper">
-<h1 class="logo"><a href="index.html">STOA</a></h1>
+
+    </section>
+
+  </div>
+  
 
 
-
-
-
-
-
-
-<h3>Navigation</h3>
-<p class="caption"><span class="caption-text">Contents:</span></p>
-<ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Introduction</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="#getting-started">Getting Started</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#general-usage">General Usage</a></li>
-</ul>
-</li>
-<li class="toctree-l1"><a class="reference internal" href="design.html">Design</a></li>
-<li class="toctree-l1"><a class="reference internal" href="funcs.html">Functions</a></li>
-</ul>
-
-<div class="relations">
-<h3>Related Topics</h3>
-<ul>
-  <li><a href="index.html">Documentation overview</a><ul>
-      <li>Previous: <a href="index.html" title="previous chapter">Welcome to STOA’s documentation!</a></li>
-      <li>Next: <a href="design.html" title="next chapter">Design</a></li>
-  </ul></li>
-</ul>
-</div>
-<div id="searchbox" style="display: none" role="search">
-  <h3>Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="search.html" method="get">
-      <input type="text" name="q" />
-      <input type="submit" value="Go" />
-      <input type="hidden" name="check_keywords" value="yes" />
-      <input type="hidden" name="area" value="default" />
-    </form>
-    </div>
-</div>
-<script type="text/javascript">$('#searchbox').show(0);</script>
-        </div>
-      </div>
-      <div class="clearer"></div>
-    </div>
-    <div class="footer">
-      &copy;2017, Peter Hague.
-      
-      |
-      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.7.6</a>
-      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.11</a>
-      
-      |
-      <a href="_sources/starting.rst.txt"
-          rel="nofollow">Page source</a>
-    </div>
+  
 
     
-
     
-  </body>
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script type="text/javascript" src="_static/jquery.js"></script>
+        <script type="text/javascript" src="_static/underscore.js"></script>
+        <script type="text/javascript" src="_static/doctools.js"></script>
+        <script type="text/javascript" src="_static/language_data.js"></script>
+    
+
+  
+
+  <script type="text/javascript" src="_static/js/theme.js"></script>
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
 </html>

@@ -108,6 +108,7 @@ def ExecCWL(cmdFile, pathname, bindex):
                 cmdDict[wt.fieldnames[i]] = {"class": "File", "location": "file://"+contents}
             else:
                 cmdDict[wt.fieldnames[i]] = contents
+    cmdDict["STOA_targetfolder"] = targetFolder
 
     try:
         result = cwlinvoke(pathname, cmdFile, cmdDict, userPath)
@@ -168,6 +169,8 @@ def clearQueue():
             tstamp = time.strftime("%Y%m%d-%H%M", time.gmtime())
             pathname = os.path.join(targetFolder, "log", wtname+"_"+tstamp+"-"+str(bindex))
             if not os.path.exists(pathname):
+                if not os.path.exists(os.path.join(targetFolder, "log")):
+                    os.mkdir(os.path.join(targetFolder, "log"))
                 os.mkdir(pathname)
 
             result = ExecCWL(command, pathname, bindex)

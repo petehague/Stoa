@@ -463,6 +463,8 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
         userFolder = "user_"+user
         if not os.path.exists(os.path.join(targetFolder,userFolder)):
             os.system("mkdir {}".format(os.path.join(targetFolder,userFolder)))
+            os.system("cp -f actions/* {}".format(os.path.join(targetFolder,userFolder)))
+
 
         if message[0] == '.':
             if message[1] == '1':

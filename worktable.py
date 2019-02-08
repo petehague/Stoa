@@ -425,7 +425,7 @@ class Worktable():
             self.fieldtypes.append("I_str")
             self.trow.append("")
         for field in inps:
-            if 'stoafolder' in inps:
+            if 'STOA_' in field:
                 continue
             typestr = "I_"
             if type(inps[field])==str:

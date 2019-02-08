@@ -1,0 +1,59 @@
+\begin{sphinxtheindex}
+\let\bigletter\sphinxstyleindexlettergroup
+\let\spxpagem \sphinxstyleindexpagemain
+\let\spxentry \sphinxstyleindexentry
+\let\spxextra \sphinxstyleindexextra
+
+  \bigletter A
+  \item \spxentry{appendQueue()}\spxextra{userstate.userState method}, \hyperpage{11}
+
+  \indexspace
+  \bigletter B
+  \item \spxentry{backend}\spxextra{module}, \hyperpage{9}
+
+  \indexspace
+  \bigletter C
+  \item \spxentry{check\_origin()}\spxextra{backend.SocketHandler method}, \hyperpage{9}
+  \item \spxentry{ConeSearchHandler}\spxextra{class in backend}, \hyperpage{9}
+  \item \spxentry{current()}\spxextra{in module backend}, \hyperpage{10}
+
+  \indexspace
+  \bigletter F
+  \item \spxentry{finalise()}\spxextra{userstate.userState method}, \hyperpage{11}
+  \item \spxentry{FitsHandler}\spxextra{class in backend}, \hyperpage{9}
+
+  \indexspace
+  \bigletter G
+  \item \spxentry{getwsroot()}\spxextra{in module backend}, \hyperpage{10}
+
+  \indexspace
+  \bigletter O
+  \item \spxentry{on\_close()}\spxextra{backend.SocketHandler method}, \hyperpage{9}
+  \item \spxentry{on\_message()}\spxextra{backend.SocketHandler method}, \hyperpage{9}
+  \item \spxentry{open()}\spxextra{backend.SocketHandler method}, \hyperpage{10}
+
+  \indexspace
+  \bigletter P
+  \item \spxentry{projectInfo()}\spxextra{in module backend}, \hyperpage{10}
+
+  \indexspace
+  \bigletter S
+  \item \spxentry{setCurrent()}\spxextra{in module backend}, \hyperpage{10}
+  \item \spxentry{setTarget()}\spxextra{in module backend}, \hyperpage{10}
+  \item \spxentry{SocketHandler}\spxextra{class in backend}, \hyperpage{9}
+  \item \spxentry{startBackend()}\spxextra{in module backend}, \hyperpage{10}
+
+  \indexspace
+  \bigletter U
+  \item \spxentry{usercheck()}\spxextra{in module backend}, \hyperpage{10}
+  \item \spxentry{userState}\spxextra{class in userstate}, \hyperpage{11}
+
+  \indexspace
+  \bigletter W
+  \item \spxentry{worktable}\spxextra{module}, \hyperpage{9}
+
+  \indexspace
+  \bigletter X
+  \item \spxentry{xmlListing()}\spxextra{in module backend}, \hyperpage{11}
+
+\end{sphinxtheindex}

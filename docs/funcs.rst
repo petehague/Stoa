@@ -4,10 +4,10 @@ Functions
 These functions are documented for completeness, most are not intended
 for the end user to call directly
 
-Pipe module
------------
+Worktable module
+----------------
 
-.. automodule:: pipe
+.. automodule:: worktable
    :members:
 
 

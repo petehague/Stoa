@@ -7,12 +7,14 @@ baseCommand: find
 stdout: list.txt
 
 arguments:
-  - position: 0
-    valueFrom: '.'
   - position: 1
     valueFrom: '-name'
 
 inputs:
+  STOA_targetfolder:
+    type: string
+    inputBinding:
+      position: 0
   foldername:
     type: string
     inputBinding:
