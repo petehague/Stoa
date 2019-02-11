@@ -528,7 +528,10 @@ class SocketHandler(tornado.websocket.WebSocketHandler):
                 newwt.genfields(path=False) 
                 if len(tokens)>2:
                     oldwt = Worktable(tokens[2])
-                    newwt.keyoff(oldwt, tokens[3:])
+                    columncheck = newwt.keyoff(oldwt, tokens[3:])
+                    if not columncheck:
+                        self.write_message(makescreen+"<p><b>Error: new table must share a column name with parent table</b></p>")
+                        return
                 newwt.save(os.path.join(targetFolder, userFolder, wtname))
                 os.system("rm -f "+os.path.join(targetFolder, userFolder,"log","*.svg"))
                 self.write_message("rt"+os.path.join(targetFolder, userFolder, os.path.join(targetFolder, userFolder, wtname)))

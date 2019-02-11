@@ -467,8 +467,6 @@ class Worktable():
         keyindex = []
         selfindex = []
         self.parenttables = [os.path.split(other.lastfilename)[1]]
-        other.childtables.append(self.lastfilename)
-        other.save(other.lastfilename)
         for i in range(len(other.fieldnames)):
             if other.fieldnames[i] in keyfield:
                 keyindex.append(i)
@@ -478,12 +476,16 @@ class Worktable():
         if keyindex==[]:
             print("No key fields "+",".join(keyfield))
             return False
-        print(keyindex, selfindex)
+        if len(selfindex)==0:
+            return 0
         for row in other:
             data = [0]*(len(self.fieldnames)-1)
             for n in range(len(keyindex)):
                 data[selfindex[n]-1] = row[keyindex[n]]
             self.addrow(data)
+        other.childtables.append(self.lastfilename)
+        other.save(other.lastfilename)
+        return 1
 
     def merge(self, other1, other2, key):
         self.parenttables = [os.path.split(other1.lastfilename)[1],
