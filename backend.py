@@ -87,11 +87,11 @@ def svgbar(filename, n, arrow=False):
     lw = 6
     height = 120
     mid = height/2
-    os.system("cp ui/smallheader.svg "+filename) 
+    os.system("cp ui/smallheader.svg "+os.path.join(targetFolder,filename)) 
 
     cols = ["red", "green", "blue", "orange"]
     cols = ["#777777"]*10    
-    svg = open(filename, "a")
+    svg = open(os.path.join(targetFolder,filename), "a")
     if arrow:
         svg.write('<polygon points="10,{1} 25,{2} 10,{3}" style="fill:{0}; stroke:{0}" />'.format(cols[n],mid-lw,mid,mid+lw))
         svg.write('<rect x="0" y="{1}" width="10" height="{2}" style="fill:{0}; stroke:{0}" />'.format(cols[n],mid-lw/2, lw))
@@ -103,13 +103,12 @@ def svgbar(filename, n, arrow=False):
 def svgline(filename, n, lmap):
     width,height = 40,120
     lw = 6
-    os.system("cp ui/header.svg "+filename)
+    os.system("cp ui/header.svg "+os.path.join(targetFolder, filename))
 
     yoffset = n*height
-    svg = open(filename, "a")
+    svg = open(os.path.join(targetFolder,filename), "a")
     cols = ["red", "green", "blue", "orange"]
     cols = ["#777777"]*10    
-    svg = open(filename, "a")
     for start in range(len(lmap)):
         for finish in lmap[start]:
             svg.write('<polygon points="')
@@ -210,10 +209,10 @@ def projectInfo(userFolder):
                           break
                    arrowfile_list = glob.glob(os.path.join(targetFolder, userFolder,"log/linkarrow_{}_{}*.svg".format(c,i)))
                    if not arrowfile_list:
-                     arrowfile = os.path.join(targetFolder,userFolder,"log/linkarrow_{}_{}_{}.svg".format(c,i,irn))                
+                     arrowfile = os.path.join(userFolder,"log/linkarrow_{}_{}_{}.svg".format(c,i,irn))                
                      svgbar(arrowfile, i, arrow=True)
                    else:
-                     arrowfile = arrowfile_list[0]
+                     arrowfile = os.path.join(userFolder, "log", os.path.split(arrowfile_list[0])[1])
                    linkbar = '<img class="linkbar" width="25" src="/file/{}" />'.format(arrowfile)
                    cells += '<td class="spacecell">{}</td>'.format(linkbar)
                 wtfile = wtmap[c][r]
@@ -238,9 +237,9 @@ def projectInfo(userFolder):
                     cells += '<td class="spacecell">&nbsp;</td>'
                 cells += '<td class="wtcell">&nbsp;</td>'
             if c<(len(wtmap)-1):
-                barfile_list = glob.glob(os.path.join(targetFolder,userFolder,"log/linkbar_{}_{}*.svg".format(c,r)))
+                barfile_list = glob.glob(os.path.join(userFolder,"log/linkbar_{}_{}*.svg".format(c,r)))
                 if not barfile_list:
-                  barfile = os.path.join(targetFolder,userFolder,"log/linkbar_{}_{}_{}.svg".format(c,r,irn))
+                  barfile = os.path.join(userFolder,"log/linkbar_{}_{}_{}.svg".format(c,r,irn))
                   svgbar(barfile, r)
                 else:
                   barfile = barfile_list[0]
@@ -249,9 +248,9 @@ def projectInfo(userFolder):
                     if len(children[wtmap[c][r]])==0:
                         linkbar = '&nbsp;'
                 cells += '<td class="spacecell">{}</td>'.format(linkbar if len(wtmap[c])>r else '')
-                svgfilename_list = glob.glob(os.path.join(targetFolder,userFolder,"log/line_{}_{}*.svg".format(c,r)))
+                svgfilename_list = glob.glob(os.path.join(userFolder,"log/line_{}_{}*.svg".format(c,r)))
                 if not svgfilename_list: 
-                  svgfilename = os.path.join(targetFolder,userFolder,"log/line_{}_{}_{}.svg".format(c,r,irn))
+                  svgfilename = os.path.join(userFolder,"log/line_{}_{}_{}.svg".format(c,r,irn))
                   lmap = []
                   for parent in wtmap[c]:
                     lmaplist = []

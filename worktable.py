@@ -9,6 +9,7 @@ import collections
 from astropy.table import Table
 import astropy.io.votable as votable
 import hashlib
+import shlex
 
 '''
   The worktable library
@@ -166,7 +167,8 @@ class Worktable():
         else:
             for datum in data:
                 if 'O' in self.fieldtypes[n]:
-                    stdata[n] = str(datum)
+                    entry = str(datum)
+                    stdata[n] = entry 
                 n+=1
             self.tabdata[key] = stdata.copy()   
             self.track[key] = TR_COMPLETE    
@@ -261,16 +263,16 @@ class Worktable():
                 if line[0] == '#':
                     continue
                 if header>=2:
-                    self.tabdata.append(re.split(' ', line))
+                    self.tabdata.append(shlex.split(line))
                     self.keyref[(self.tabdata[-1])[1]] = len(self.tabdata)-1
                     self.track.append(TR_COMPLETE)
                     continue
                 if header==0:
-                    self.fieldnames = re.split(' ', line)
+                    self.fieldnames = shlex.split(line)
                 if header==1:
-                    self.fieldtypes = re.split(' ', line)
+                    self.fieldtypes = shlex.split(line)
                 #if header==2:
-                #    self.fielducd = re.split(' ', line)
+                #    self.fielducd = shlex.split(line)
                 header += 1
             if "tracking.txt" in wtab.namelist():
                 with wtab.open("tracking.txt", "r") as tracking:
@@ -354,7 +356,13 @@ class Worktable():
             tabfile.write(' '.join(self.fieldtypes)+"\n")
             tabfile.write(' '.join(self.fielducd)+"\n")
             for row in self.tabdata:
-                tabfile.write(' '.join(row)+"\n")
+                rowout = []
+                for item in row:
+                    if ' ' in item:
+                        item = '"'+item+'"'
+                    rowout.append(item)
+                print(rowout)
+                tabfile.write(' '.join(rowout)+"\n")
             tabfile.close()
             trackfile = open(tempdir+"/tracking.txt", "w")
             for item in self.track:

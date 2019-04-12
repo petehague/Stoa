@@ -55,9 +55,11 @@ Once this table is present, go into it and add a new row with ``product`` as its
 
 .. image:: worktableview.png
 
-At this point, there will be two pathnames from the example folder. This information will be passed on to the next worktable
+At this point, there will be two pathnames from the example folder. This information will be passed on to the next worktable. Create this worktable from the file ``getobject.cwl``. No .yml file is needed. Choose 'Key from other table' and then choose ``find.cwl`` and click on PATHNAME. Once you have done this, the screen should look like this:
 
+.. image:: keytable.png
 
+Now create the table. You will now see its Pathname field is populated by the output of the previous table. Run this table either using the Run All option, or by individually running each row.
 
 
 Creating Worktables
