@@ -8,6 +8,8 @@ This software is still in development; users are encouraged to contact prh44 (AT
 
 STOA requires Python 3 and some Python libraries, all available through `pip` - we recommend that you use a virtual environment when trying this out. When you have one set up, install `numpy`, `astropy`,`cwltool`,`grpcio-tools` and `tornado` and you should be good to go
 
+You may also need to run `sudo pip install --upgrade protobuf`
+
 In order to prepare STOA to run, type
 
 `./ready.sh`
@@ -20,7 +22,7 @@ to run the demo. Go to your browser and visit `localhost:9000` to try it out
 
 # How to Use
 
-Log in as `guest` (no password is required) and try to create a worktable to implement the 'find' command. Once this table is present, go into it and add a new row with 'product' as its input, and then run that row.
+Log in as `guest` (no password is required) and try to create a worktable to implement the 'find' command. Use the `find.cwl` that is provided. Once this table is present, go into it and add a new row with 'product' as its input, and then run that row.
 
 For more tutorial information, take a look at the user guide - `manual.pdf`
 
